@@ -11,37 +11,47 @@ import { trailersStyles, trailersCSS } from "../assets/dummyStyles";
 import { useEffect, useRef, useState } from "react";
 import axios  from "axios"
 
-const API_BASE = "http://localhost:5000";
+const API_BASE = "https://movie-booking-0z6f.onrender.com";
 
 
 const PLACEHOLDER_THUMB =
   "https://via.placeholder.com/800x450?text=No+Thumbnail";
 
 const getUploadUrl = (input) => {
-  if (!input) return null;
+  if (!input) return PLACEHOLDER_THUMB;
 
-  // Case 1: already a full URL
-  if (typeof input === "string") {
-    if (input.startsWith("http://") || input.startsWith("https://"))
-      return input;
-    // filename only (like "abc.jpg")
-    return `${API_BASE}/uploads/${input}`;
-  }
-
-  // Case 2: input is an object (multer-like)
+  // Handle object input (multer-like)
   if (typeof input === "object") {
-    const possible =
-      input.url ||
-      input.path ||
-      input.filename ||
-      input.file ||
-      input.image ||
-      "";
-
+    const possible = input.url || input.path || input.filename || input.file || input.image || "";
     if (possible) return getUploadUrl(possible);
+    return PLACEHOLDER_THUMB;
   }
 
-  return null;
+  // Handle string input
+  if (typeof input === "string") {
+    // Already a full URL
+    if (input.startsWith("http")) return input;
+    
+    // Cloudinary public_id
+    if (input.startsWith("image/upload/")) {
+      return `https://res.cloudinary.com/YOUR_CLOUD_NAME/${input}`;
+    }
+    
+    // Absolute path (starting with /uploads/)
+    if (input.startsWith("/uploads/")) {
+      return `https://movie-booking-0z6f.onrender.com${input}`;
+    }
+    
+    // Relative path (uploads/filename.jpg)
+    if (input.startsWith("uploads/")) {
+      return `https://movie-booking-0z6f.onrender.com/uploads/${input.replace(/^uploads\//, "")}`;
+    }
+    
+    // Just a filename
+    return `https://movie-booking-0z6f.onrender.com/uploads/${input}`;
+  }
+
+  return PLACEHOLDER_THUMB;
 };
 
 //for duration

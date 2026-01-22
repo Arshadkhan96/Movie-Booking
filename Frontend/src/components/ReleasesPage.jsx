@@ -2,19 +2,30 @@ import { useEffect, useState } from "react";
 import { releasesStyles } from "../assets/dummyStyles";
 
 const PLACEHOLDER_IMG = "https://via.placeholder.com/400x600?text=No+Image";
-const API_BASE = 'http://localhost:5000';
+const API_BASE = 'https://movie-booking-0z6f.onrender.com';
 
 //to get img from uploads folder
 const getUploadUrl = (maybeFilenameOrUrl) => {
-  if (!maybeFilenameOrUrl) return null;
-  if (typeof maybeFilenameOrUrl !== "string") return null;
-  if (
-    maybeFilenameOrUrl.startsWith("http://") ||
-    maybeFilenameOrUrl.startsWith("https://")
-  )
+  if (!maybeFilenameOrUrl) return PLACEHOLDER_IMG;
+  if (typeof maybeFilenameOrUrl !== "string") return PLACEHOLDER_IMG;
+  
+  // If it's already a full URL, return as is
+  if (maybeFilenameOrUrl.startsWith("http")) {
     return maybeFilenameOrUrl;
-  // assume it's a filename saved by multer
-  return `${API_BASE}/uploads/${maybeFilenameOrUrl.replace(/^uploads\//, "")}`;
+  }
+  
+  // If it's a Cloudinary public_id (starts with 'image/upload/')
+  if (maybeFilenameOrUrl.startsWith("image/upload/")) {
+    return `https://res.cloudinary.com/YOUR_CLOUD_NAME/${maybeFilenameOrUrl}`;
+  }
+  
+  // For backward compatibility, check if it's a local path
+  if (maybeFilenameOrUrl.startsWith("uploads/")) {
+    return `${API_BASE}/uploads/${maybeFilenameOrUrl.replace(/^uploads\//, "")}`;
+  }
+  
+  // Default case for filenames without path
+  return `${API_BASE}/uploads/${maybeFilenameOrUrl}`;
 };
 
 //map our movies coming from the server side..

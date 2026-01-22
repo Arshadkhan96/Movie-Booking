@@ -3,15 +3,34 @@ import { moviesPageStyles } from "../assets/dummyStyles"
 import { Link } from "react-router-dom"
 
 
-const API_BASE = "http://localhost:5000";
+const API_BASE = "https://movie-booking-0z6f.onrender.com";
 const COLLAPSE_COUNT = 12;
 const PLACEHOLDER = "https://dummyimage.com/400x600/cccccc/000000&text=No+Poster";
 
 const getUploadUrl = (maybe) => {
-  if (!maybe) return null;
-  if (typeof maybe !== "string") return null;
-  if (maybe.startsWith("http://") || maybe.startsWith("https://")) return maybe;
-  return `${API_BASE}/uploads/${String(maybe).replace(/^uploads\//, "")}`;
+  if (!maybe) return PLACEHOLDER;
+  if (typeof maybe !== "string") return PLACEHOLDER;
+  
+  // If it's already a full URL, return as is
+  if (maybe.startsWith("http")) return maybe;
+  
+  // If it's a Cloudinary public_id (starts with 'image/upload/')
+  if (maybe.startsWith("image/upload/")) {
+    return `https://res.cloudinary.com/YOUR_CLOUD_NAME/${maybe}`;
+  }
+  
+  // Handle absolute paths (starting with /uploads/)
+  if (maybe.startsWith("/uploads/")) {
+    return `https://movie-booking-0z6f.onrender.com${maybe}`;
+  }
+  
+  // Handle relative paths (uploads/filename.jpg)
+  if (maybe.startsWith("uploads/")) {
+    return `https://movie-booking-0z6f.onrender.com/uploads/${maybe.replace(/^uploads\//, "")}`;
+  }
+  
+  // Default case - assume it's just a filename
+  return `https://movie-booking-0z6f.onrender.com/uploads/${maybe}`;
 };
 
 const categoriesList = [

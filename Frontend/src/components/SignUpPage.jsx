@@ -16,7 +16,7 @@ import {
 import { signUpStyles } from "../assets/dummyStyles";
 import axios from 'axios'
 
-const API_BASE = 'http://localhost:5000/api/auth'
+const API_BASE = 'https://movie-booking-0z6f.onrender.com'
 
 const SignUpPage = () => {
   const [formData, setFormData] = useState({

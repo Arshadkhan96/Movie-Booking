@@ -5,7 +5,7 @@ import { ArrowLeft, Clapperboard, Eye, EyeOff, Film, Popcorn } from "lucide-reac
 import axios from 'axios'
 
 
-const API_BASE = 'http://localhost:5000/api/auth'
+const API_BASE = 'https://movie-booking-0z6f.onrender.com'
 
 const LoginPage = () => {
   const [formData, setFormData] = useState({

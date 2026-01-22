@@ -6,7 +6,7 @@ import { useNavigate } from 'react-router-dom'
 import { useEffect } from 'react'
 import { Clock ,  Film, MapPin, QrCode,ChevronDown } from "lucide-react"
 
-const  API_BASE = "http://localhost:5000"
+const  API_BASE = "https://movie-booking-0z6f.onrender.com"
 
 function getStoreToken() {
   return(
@@ -304,11 +304,6 @@ const BookingsPage = () => {
   const closeModel = () => setScannedDetails(null);
 
     return (
-    // <div className={bookingsPageStyles.pageContainer}>
-    //   <div className={bookingsPageStyles.mainContainer}>
-    //     <header className={bookingsPageStyles.header}>
-    //       <h1 className={bookingsPageStyles.title} style={{color:'red'}}>Your Tickets</h1>
-    //       <div className={bookingsPageStyles.subtital}>Present QR at entry</div>
     <div className={bookingsPageStyles.pageContainer}>
   <div className={bookingsPageStyles.mainContainer}>
     <header className={bookingsPageStyles.header}>

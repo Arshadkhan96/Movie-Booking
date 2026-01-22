@@ -33,7 +33,7 @@ useEffect(() => {
 
         try {
             setStatusMsg("Confirming payment with server...");
-            const API_BASE = "http://localhost:5000";
+            const API_BASE = "https://movie-booking-0z6f.onrender.com";
             const res = await axios.get(
                 `${API_BASE}/api/bookings/confirm-payment`,
                 {
