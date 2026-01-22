@@ -5,20 +5,76 @@ import { connectDB } from "./config/db.js";
 import userRouter from "./routes/userRoute.js";
 import movieRouter from "./routes/movieRoute.js";
 import path from "path";
+import { fileURLToPath } from 'url';
 import bookingRouter from "./routes/bookingRoute.js";
 import { initCloudinary } from "./config/cloudinary.js";
 
+// ES module equivalent of __dirname
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 const app = express();
-const port = 5000;
+const port = process.env.PORT || 5000;
+
+// Enhanced CORS configuration
+const corsOptions = {
+  origin: ['http://localhost:3000', 'https://movie-007-booking.netlify.app'],
+  optionsSuccessStatus: 200,
+  credentials: true
+};
 
 // MIDDLEWARES
-app.use(cors());
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(cors(corsOptions));
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+
+// Enhanced static file serving
+const uploadsPath = path.join(__dirname, 'uploads');
+app.use('/uploads', express.static(uploadsPath, {
+  setHeaders: (res, path) => {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+    res.setHeader('Cache-Control', 'public, max-age=31536000'); // 1 year cache
+  }
+}));
+
+// Test route for static files
+app.get('/test-upload', (req, res) => {
+  res.send('Static files are being served correctly');
+});
+
+// ROUTES
+app.use("/api/auth", userRouter);
+app.use("/api/movies", movieRouter);
+app.use("/api/bookings", bookingRouter);
+
+app.get("/", (req, res) => {
+  res.send(`
+    <h1>API is running</h1>
+    <p>Test static files: <a href="/test-upload">Test Uploads</a></p>
+  `);
+});
+
+// Error handling middleware
+app.use((err, req, res, next) => {
+  console.error('Error:', err.stack);
+  res.status(500).json({
+    success: false,
+    message: 'Something went wrong!',
+    error: process.env.NODE_ENV === 'development' ? err.message : {}
+  });
+});
 
 // Initialize Database and Cloudinary
 const initializeApp = async () => {
   try {
+    // Create uploads directory if it doesn't exist
+    const fs = await import('fs');
+    if (!fs.existsSync(uploadsPath)) {
+      fs.mkdirSync(uploadsPath, { recursive: true });
+      console.log('Uploads directory created');
+    }
+
     // Connect to MongoDB
     await connectDB();
     
@@ -29,22 +85,13 @@ const initializeApp = async () => {
     // Start the server
     app.listen(port, () => {
       console.log(`Server Started on http://localhost:${port}`);
+      console.log(`Serving static files from: ${uploadsPath}`);
     });
   } catch (error) {
     console.error('Failed to initialize the application:', error);
     process.exit(1);
   }
 };
-
-// ROUTES
-app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
-app.use("/api/auth", userRouter);
-app.use("/api/movies", movieRouter);
-app.use("/api/bookings", bookingRouter);
-
-app.get("/", (req, res) => {
-  res.send(`API WORKS`);
-});
 
 // Start the application
 initializeApp();
