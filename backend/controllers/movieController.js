@@ -9,9 +9,41 @@ const API_BASE = "https://res.cloudinary.com/movie-booking/image/upload/";
 // Builds a full URL from a Cloudinary public_id or returns the URL if it's already a full URL
 const getUploadUrl = (val) => {
   if (!val) return null;
-  if (typeof val === "string" && /^(https?:\/\/)/.test(val)) return val;
-  if (typeof val === 'object' && val.secure_url) return val.secure_url;
-  return val; // Return as is if it's already a Cloudinary public_id or URL
+  
+  // If it's already a Cloudinary URL, return as is
+  if (typeof val === 'string' && val.includes('res.cloudinary.com')) {
+    return val;
+  }
+  
+  // If it's a Cloudinary file object with secure_url
+  if (val && typeof val === 'object' && val.secure_url) {
+    return val.secure_url;
+  }
+  
+  // If it's a Cloudinary upload result object
+  if (val && typeof val === 'object' && val.url) {
+    return val.url;
+  }
+  
+  // If it's a file object from multer-storage-cloudinary
+  if (val && typeof val === 'object' && val.path) {
+    // Make sure it's not a local path
+    if (val.path.includes('http') || val.path.includes('res.cloudinary.com')) {
+      return val.path;
+    }
+    console.warn('Local file path detected but Cloudinary URL expected:', val.path);
+    return null;
+  }
+  
+  // Reject localhost URLs - these should not be stored
+  if (typeof val === 'string' && (val.includes('localhost') || val.includes('127.0.0.1'))) {
+    console.warn('Localhost URLs are not allowed. Please upload to Cloudinary first.');
+    return null;
+  }
+  
+  // If we get here, the value is not in a recognized format
+  console.warn('Invalid file reference. Expected Cloudinary URL or object, got:', val);
+  return null;
 };
 
 // Extract public_id from Cloudinary URL for deletion
@@ -147,16 +179,16 @@ export async function createMovie(req, res) {
   try {
     const body = req.body || {};
 
-    const posterUrl = req.files?.poster?.[0]?.filename
-      ? getUploadUrl(req.files.poster[0].filename)
+    const posterUrl = req.files?.poster?.[0]?.path
+      ? getUploadUrl(req.files.poster[0])
       : body.poster || null;
 
-    const trailerUrl = req.files?.trailerUrl?.[0]?.filename
-      ? getUploadUrl(req.files.trailerUrl[0].filename)
+    const trailerUrl = req.files?.trailerUrl?.[0]?.path
+      ? getUploadUrl(req.files.trailerUrl[0])
       : body.trailerUrl || null;
 
-    const videoUrl = req.files?.videoUrl?.[0]?.filename
-      ? getUploadUrl(req.files.videoUrl[0].filename)
+    const videoUrl = req.files?.videoUrl?.[0]?.path
+      ? getUploadUrl(req.files.videoUrl[0])
       : body.videoUrl || null;
 
     const categories =
@@ -179,11 +211,15 @@ export async function createMovie(req, res) {
     const directors = safeParseJSON(body.directors) || [];
     const producers = safeParseJSON(body.producers) || [];
 
-    const attachFiles = (filesArrName, targetArr, toFilename = (f) => getUploadUrl(f)) => {
+    const attachFiles = (filesArrName, targetArr) => {
       if (!req.files?.[filesArrName]) return;
       req.files[filesArrName].forEach((file, idx) => {
-        if (targetArr[idx]) targetArr[idx].file = toFilename(file.filename);
-        else targetArr[idx] = { name: "", file: toFilename(file.filename) };
+        const fileUrl = getUploadUrl(file);
+        if (targetArr[idx]) {
+          targetArr[idx].file = fileUrl;
+        } else {
+          targetArr[idx] = { name: "", file: fileUrl };
+        }
       });
     };
 
@@ -193,11 +229,10 @@ export async function createMovie(req, res) {
 
     const latestTrailerBody = safeParseJSON(body.latestTrailer) || {};
 
-    if (req.files?.ltThumbnail?.[0]?.filename)
-      latestTrailerBody.thumbnail = req.files.ltThumbnail[0].filename;
-    else if (body.ltThumbnail) {
-      const fn = extractFilenameFromUrl(body.ltThumbnail);
-      latestTrailerBody.thumbnail = fn ? fn : body.ltThumbnail;
+    if (req.files?.ltThumbnail?.[0]) {
+      latestTrailerBody.thumbnail = getUploadUrl(req.files.ltThumbnail[0]);
+    } else if (body.ltThumbnail) {
+      latestTrailerBody.thumbnail = body.ltThumbnail;
     }
 
     if (body.ltVideoUrl) latestTrailerBody.videoId = body.ltVideoUrl;
@@ -211,11 +246,12 @@ export async function createMovie(req, res) {
     const attachLtFiles = (fieldName, arrName) => {
       if (!req.files?.[fieldName]) return;
       req.files[fieldName].forEach((file, idx) => {
-        const filename = file.filename;
-        if (latestTrailerBody[arrName][idx])
-          latestTrailerBody[arrName][idx].file = filename;
-        else
-          latestTrailerBody[arrName][idx] = { name: "", file: filename };
+        const fileUrl = getUploadUrl(file);
+        if (latestTrailerBody[arrName][idx]) {
+          latestTrailerBody[arrName][idx].file = fileUrl;
+        } else {
+          latestTrailerBody[arrName][idx] = { name: "", file: fileUrl };
+        }
       });
     };
     attachLtFiles("ltDirectorFiles", "directors");

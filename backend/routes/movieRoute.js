@@ -1,11 +1,7 @@
 import express from 'express';
 import multer from 'multer';
-import path from 'path';
 import { createMovie, getMovies, getMovieById, deleteMovie } from '../controllers/movieController.js';
-import { storage, initCloudinary } from '../config/cloudinary.js';
-
-// Initialize Cloudinary
-await initCloudinary();
+import { storage } from '../config/cloudinary.js';
 
 const movieRouter = express.Router();
 
