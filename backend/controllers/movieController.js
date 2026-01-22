@@ -1,37 +1,39 @@
 import mongoose from "mongoose";
-import Movie from "../models/movieModel.js";   // FIXED
-import path from "path";
-import fs from "fs";
-const API_BASE = "http://localhost:5000/";  // FIXED NAME consistency
+import Movie from "../models/movieModel.js";
+import { cloudinary } from '../config/cloudinary.js';
+
+// Cloudinary configuration is already done in the cloudinary.js file
+const API_BASE = "https://res.cloudinary.com/movie-booking/image/upload/";
 
 /* ---------------------- small helpers ---------------------- */
-// Builds a full upload URL from a filename or returns null if invalid
+// Builds a full URL from a Cloudinary public_id or returns the URL if it's already a full URL
 const getUploadUrl = (val) => {
   if (!val) return null;
   if (typeof val === "string" && /^(https?:\/\/)/.test(val)) return val;
-  const cleaned = String(val).replace(/^uploads\//, "");
-  if (!cleaned) return null;
-  return `${API_BASE}uploads/${cleaned}`;   // FIXED
+  if (typeof val === 'object' && val.secure_url) return val.secure_url;
+  return val; // Return as is if it's already a Cloudinary public_id or URL
 };
 
-// Extracts the filename from a URL or upload path
-const extractFilenameFromUrl = (u) => {
-  if (!u || typeof u !== "string") return null;
-  const parts = u.split("/uploads/");
-  if (parts[1]) return parts[1];
-  if (u.startsWith("uploads/")) return u.replace(/^uploads\//, "");
-  return /^[^\/]+\.[a-zA-Z0-9]+$/.test(u) ? u : null;
+// Extract public_id from Cloudinary URL for deletion
+const extractPublicId = (url) => {
+  if (!url) return null;
+  if (typeof url !== 'string') return null;
+  
+  // If it's a Cloudinary URL, extract the public_id
+  const matches = url.match(/upload\/(?:v\d+\/)?([^.]+\.\w+)(?:\.\w+)?$/);
+  return matches ? matches[1].split('.')[0] : null;
 };
 
-// Deletes a file from the uploads folder if it exists
-const tryUnlinkUploadUrl = (urlOrFilename) => {
-  const fn = extractFilenameFromUrl(urlOrFilename);
-  if (!fn) return;
-  const filepath = path.join(process.cwd(), "uploads", fn);
-  fs.unlink(filepath, (err) => {
-    if (err)
-      console.warn("Failed to unlink file", filepath, err?.message || err);
-  });
+// Delete a file from Cloudinary
+const deleteFromCloudinary = async (url) => {
+  try {
+    const publicId = extractPublicId(url);
+    if (publicId) {
+      await cloudinary.uploader.destroy(publicId);
+    }
+  } catch (error) {
+    console.error('Error deleting from Cloudinary:', error);
+  }
 };
 
 // Safely parses JSON and returns null on failure   
@@ -387,50 +389,44 @@ export async function deleteMovie(req, res) {
       });
     }
 
-    const m = await Movie.findById(id);
-    if (!m) {
+    const movie = await Movie.findById(id);
+    if (!movie) {
       return res.status(404).json({
         success: false,
         message: "Movie not found.",
       });
     }
 
-    // unlink main assets
-    if (m.poster) tryUnlinkUploadUrl(m.poster);
-    if (m.trailerUrl && m.latestTrailer.thumbnail)
-      tryUnlinkUploadUrl(m.latestTrailer.thumbnail);
-
-    // unlink person files
-    [m.cast || [], m.directors || [], m.producers || []].forEach((arr) =>
-      arr.forEach((p) => {
-        if (p?.file) tryUnlinkUploadUrl(p.file);
-      })
-    );
-
-    if (m.latestTrailer) {
-      [
-        ...(m.latestTrailer.directors || []),
-        ...(m.latestTrailer.producers || []),
-        ...(m.latestTrailer.singers || []),
-      ].forEach((p) => {
-        if (p?.file) tryUnlinkUploadUrl(p.file);
-      });
+    // Delete main assets from Cloudinary
+    if (movie.poster) await deleteFromCloudinary(movie.poster);
+    if (movie.trailerUrl && movie.latestTrailer?.thumbnail) {
+      await deleteFromCloudinary(movie.latestTrailer.thumbnail);
     }
 
-    await Movie.findByIdAndDelete(id);
+    // Delete person files from Cloudinary
+    const allPeople = [
+      ...(movie.cast || []),
+      ...(movie.directors || []),
+      ...(movie.producers || []),
+      ...(movie.latestTrailer?.directors || []),
+      ...(movie.latestTrailer?.producers || []),
+      ...(movie.latestTrailer?.singers || []),
+    ];
 
-    return res.json({
-      success: true,
-      message: "Movie deleted successfully.",
-    });
+    for (const person of allPeople) {
+      if (person?.file) {
+        await deleteFromCloudinary(person.file);
+      }
+    }
+
+    // Delete the movie from the database
+    await Movie.findByIdAndDelete(id);
+    res.status(200).json({ message: 'Movie deleted successfully' });
   } catch (error) {
-    console.error("DeleteMovie Error:", error);
-    return res.status(500).json({
-      success: false,
-      message: "Server Error. Please try again later.",
-    });
+    console.error('Error deleting movie:', error);
+    res.status(500).json({ message: 'Error deleting movie', error: error.message });
   }
-}
+};
 
 export default {
   createMovie,
