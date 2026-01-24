@@ -1,12 +1,11 @@
 import express from 'express';
-import multer from 'multer';
 import { createMovie, getMovies, getMovieById, deleteMovie } from '../controllers/movieController.js';
-import { storage } from '../config/cloudinary.js';
+import { upload } from '../config/cloudinary.js';
 
 const movieRouter = express.Router();
 
-// Use Cloudinary storage for file uploads
-const upload = multer({ storage }).fields([
+// Define the file fields configuration
+const fileFields = [
   { name: "poster", maxCount: 1 },
   { name: "trailerUrl", maxCount: 1 },
   { name: "videoUrl", maxCount: 1 },
@@ -17,9 +16,25 @@ const upload = multer({ storage }).fields([
   { name: "ltDirectorFiles", maxCount: 20 },
   { name: "ltProducerFiles", maxCount: 20 },
   { name: "ltSingerFiles", maxCount: 20 },
-]);
+];
 
-movieRouter.post('/',upload, createMovie)
+// Apply the Cloudinary upload middleware with the file fields configuration
+const uploadMiddleware = (req, res, next) => {
+  upload.fields(fileFields)(req, res, (err) => {
+    if (err) {
+      console.error('Upload error:', err);
+      return res.status(400).json({ 
+        success: false, 
+        message: 'File upload failed',
+        error: err.message 
+      });
+    }
+    next();
+  });
+};
+
+// Apply the upload middleware to the route
+movieRouter.post('/', uploadMiddleware, createMovie)
 
 movieRouter.get('/', getMovies);
 movieRouter.get('/:id', getMovieById);

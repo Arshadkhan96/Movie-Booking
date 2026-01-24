@@ -9,36 +9,33 @@ const API_BASE = "https://res.cloudinary.com/movie-booking/image/upload/";
 // Builds a full URL from a Cloudinary public_id or returns the URL if it's already a full URL
 const getUploadUrl = (val) => {
   if (!val) return null;
+
+  // Reject any localhost URLs immediately
+  if (typeof val === 'string' && (val.includes('localhost:5000/uploads/') || 
+                                 val.includes('127.0.0.1:5000/uploads/'))) {
+    console.warn('Localhost file URLs are not allowed. Please upload to Cloudinary first.');
+    return null;
+  }
   
   // If it's already a Cloudinary URL, return as is
   if (typeof val === 'string' && val.includes('res.cloudinary.com')) {
     return val;
   }
   
-  // If it's a Cloudinary file object with secure_url
-  if (val && typeof val === 'object' && val.secure_url) {
-    return val.secure_url;
-  }
-  
-  // If it's a Cloudinary upload result object
-  if (val && typeof val === 'object' && val.url) {
-    return val.url;
-  }
-  
-  // If it's a file object from multer-storage-cloudinary
-  if (val && typeof val === 'object' && val.path) {
-    // Make sure it's not a local path
-    if (val.path.includes('http') || val.path.includes('res.cloudinary.com')) {
+  // Handle Cloudinary file object from multer-storage-cloudinary
+  if (val && typeof val === 'object') {
+    // Check for Cloudinary secure_url first (preferred)
+    if (val.secure_url) {
+      return val.secure_url;
+    }
+    // Then check for url property
+    if (val.url) {
+      return val.url;
+    }
+    // Check for path but only if it's a Cloudinary URL
+    if (val.path && (val.path.includes('http') || val.path.includes('res.cloudinary.com'))) {
       return val.path;
     }
-    console.warn('Local file path detected but Cloudinary URL expected:', val.path);
-    return null;
-  }
-  
-  // Reject localhost URLs - these should not be stored
-  if (typeof val === 'string' && (val.includes('localhost') || val.includes('127.0.0.1'))) {
-    console.warn('Localhost URLs are not allowed. Please upload to Cloudinary first.');
-    return null;
   }
   
   // If we get here, the value is not in a recognized format

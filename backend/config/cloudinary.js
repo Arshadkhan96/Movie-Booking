@@ -19,31 +19,47 @@ const initCloudinary = async () => {
   return true;
 };
 
-// Create storage engine for Multer
+// Create storage engine for Multer with Cloudinary
 const storage = new CloudinaryStorage({
-  cloudinary,
-  params: (req, file) => ({
+  cloudinary: cloudinary,
+  params: {
     folder: 'movie-booking',
-    public_id: `movie-${Date.now()}`,
+    format: async (req, file) => {
+      // Extract file extension from mimetype or originalname
+      const format = file.mimetype.split('/')[1] || 'jpg';
+      return format === 'jpeg' ? 'jpg' : format; // Cloudinary uses 'jpg' not 'jpeg'
+    },
+    public_id: (req, file) => {
+      // Generate a unique public_id for each file
+      const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
+      return `movie-${uniqueSuffix}`;
+    },
     resource_type: 'auto',
-    allowed_formats: ['jpg', 'jpeg', 'png', 'gif', 'webp'],
+    allowed_formats: ['jpg', 'jpeg', 'png', 'gif', 'webp', 'mp4', 'mov', 'avi', 'mkv'],
     transformation: [
       { width: 500, height: 750, crop: 'fill', quality: 'auto' },
       { fetch_format: 'auto' }
     ]
-  })
+  }
 });
 
-// Initialize multer with the storage engine
+// Configure multer with the Cloudinary storage
 const upload = multer({ 
-  storage,
-  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
+  storage: storage,
+  limits: { 
+    fileSize: 50 * 1024 * 1024, // 50MB limit (increased for videos)
+    files: 50 // Maximum number of files
+  },
   fileFilter: (req, file, cb) => {
-    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
+    const allowedTypes = [
+      'image/jpeg', 'image/png', 'image/webp', 'image/gif',
+      'video/mp4', 'video/quicktime', 'video/x-msvideo', 'video/x-matroska'
+    ];
+    
     if (allowedTypes.includes(file.mimetype)) {
       cb(null, true);
     } else {
-      cb(new Error('Invalid file type. Only JPEG, PNG and WebP are allowed.'));
+      cb(new Error(`Invalid file type: ${file.mimetype}. Only images and videos are allowed.`), false);
     }
   }
 });
