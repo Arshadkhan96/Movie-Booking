@@ -6,25 +6,29 @@ import { cloudinary } from '../config/cloudinary.js';
 const API_BASE = "https://res.cloudinary.com/movie-booking/image/upload/";
 
 /* ---------------------- small helpers ---------------------- */
-// Builds a full URL from a Cloudinary public_id or returns the URL if it's already a full URL
+// Builds a full URL from Cloudinary file object
+// IMPORTANT: Only accepts Cloudinary responses, no localhost URLs allowed
 const getUploadUrl = (val) => {
   if (!val) return null;
 
   // Reject any localhost URLs immediately
-  if (typeof val === 'string' && (val.includes('localhost:5000/uploads/') || 
-                                 val.includes('127.0.0.1:5000/uploads/'))) {
-    console.warn('Localhost file URLs are not allowed. Please upload to Cloudinary first.');
+  if (typeof val === 'string') {
+    if (val.includes('localhost:') || val.includes('127.0.0.1:')) {
+      console.error('ERROR: Localhost file URL detected. This indicates Cloudinary upload failed:', val);
+      return null;
+    }
+    // If it's already a Cloudinary URL, return as is
+    if (val.includes('res.cloudinary.com')) {
+      return val;
+    }
+    // Reject any other string that's not a Cloudinary URL
+    console.error('ERROR: Invalid URL format (not Cloudinary):', val);
     return null;
-  }
-  
-  // If it's already a Cloudinary URL, return as is
-  if (typeof val === 'string' && val.includes('res.cloudinary.com')) {
-    return val;
   }
   
   // Handle Cloudinary file object from multer-storage-cloudinary
   if (val && typeof val === 'object') {
-    // Check for Cloudinary secure_url first (preferred)
+    // Check for Cloudinary secure_url first (preferred) - this is what multer-storage-cloudinary provides
     if (val.secure_url) {
       return val.secure_url;
     }
@@ -32,14 +36,14 @@ const getUploadUrl = (val) => {
     if (val.url) {
       return val.url;
     }
-    // Check for path but only if it's a Cloudinary URL
-    if (val.path && (val.path.includes('http') || val.path.includes('res.cloudinary.com'))) {
+    // Check for path as fallback
+    if (val.path && val.path.includes('res.cloudinary.com')) {
       return val.path;
     }
   }
   
   // If we get here, the value is not in a recognized format
-  console.warn('Invalid file reference. Expected Cloudinary URL or object, got:', val);
+  console.error('ERROR: Invalid file reference. Expected Cloudinary object, got:', val);
   return null;
 };
 
@@ -176,17 +180,19 @@ export async function createMovie(req, res) {
   try {
     const body = req.body || {};
 
-    const posterUrl = req.files?.poster?.[0]?.path
+    // CRITICAL: Only accept uploaded files from Cloudinary, never use body.poster as fallback
+    const posterUrl = req.files?.poster?.[0]
       ? getUploadUrl(req.files.poster[0])
-      : body.poster || null;
+      : null;
 
-    const trailerUrl = req.files?.trailerUrl?.[0]?.path
+    // CRITICAL: Only accept uploaded files from Cloudinary
+    const trailerUrl = req.files?.trailerUrl?.[0]
       ? getUploadUrl(req.files.trailerUrl[0])
-      : body.trailerUrl || null;
+      : null;
 
-    const videoUrl = req.files?.videoUrl?.[0]?.path
+    const videoUrl = req.files?.videoUrl?.[0]
       ? getUploadUrl(req.files.videoUrl[0])
-      : body.videoUrl || null;
+      : null;
 
     const categories =
       safeParseJSON(body.categories) ||
@@ -226,10 +232,9 @@ export async function createMovie(req, res) {
 
     const latestTrailerBody = safeParseJSON(body.latestTrailer) || {};
 
+    // CRITICAL: Only accept uploaded files from Cloudinary
     if (req.files?.ltThumbnail?.[0]) {
       latestTrailerBody.thumbnail = getUploadUrl(req.files.ltThumbnail[0]);
-    } else if (body.ltThumbnail) {
-      latestTrailerBody.thumbnail = body.ltThumbnail;
     }
 
     if (body.ltVideoUrl) latestTrailerBody.videoId = body.ltVideoUrl;

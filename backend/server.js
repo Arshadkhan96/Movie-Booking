@@ -46,20 +46,8 @@ app.use((req, res, next) => {
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
-// Enhanced static file serving
-const uploadsPath = path.join(__dirname, 'uploads');
-app.use('/uploads', express.static(uploadsPath, {
-  setHeaders: (res, path) => {
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
-    res.setHeader('Cache-Control', 'public, max-age=31536000'); // 1 year cache
-  }
-}));
-
-// Test route for static files
-app.get('/test-upload', (req, res) => {
-  res.send('Static files are being served correctly');
-});
+// NOTE: Remove static /uploads serving - all uploads should go to Cloudinary
+// Do NOT serve local uploads directory as it defeats the purpose of using Cloudinary
 
 // ROUTES
 app.use("/api/auth", userRouter);
@@ -86,13 +74,6 @@ app.use((err, req, res, next) => {
 // Initialize Database and Cloudinary
 const initializeApp = async () => {
   try {
-    // Create uploads directory if it doesn't exist
-    const fs = await import('fs');
-    if (!fs.existsSync(uploadsPath)) {
-      fs.mkdirSync(uploadsPath, { recursive: true });
-      console.log('Uploads directory created');
-    }
-
     // Connect to MongoDB
     await connectDB();
     
@@ -103,7 +84,7 @@ const initializeApp = async () => {
     // Start the server
     app.listen(port, () => {
       console.log(`Server Started on http://localhost:${port}`);
-      console.log(`Serving static files from: ${uploadsPath}`);
+      console.log('All file uploads will be stored in Cloudinary');
     });
   } catch (error) {
     console.error('Failed to initialize the application:', error);

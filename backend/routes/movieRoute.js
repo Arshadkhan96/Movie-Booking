@@ -22,13 +22,22 @@ const fileFields = [
 const uploadMiddleware = (req, res, next) => {
   upload.fields(fileFields)(req, res, (err) => {
     if (err) {
-      console.error('Upload error:', err);
+      console.error('❌ UPLOAD ERROR:', err.message);
       return res.status(400).json({ 
         success: false, 
         message: 'File upload failed',
         error: err.message 
       });
     }
+    
+    // Log successful upload
+    if (req.files) {
+      console.log('✅ Files uploaded to Cloudinary:', Object.keys(req.files));
+      if (req.files.poster && req.files.poster[0]) {
+        console.log('📸 Poster uploaded:', req.files.poster[0].secure_url);
+      }
+    }
+    
     next();
   });
 };
