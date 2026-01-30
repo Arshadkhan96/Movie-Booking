@@ -1,90 +1,66 @@
-import { v2 as cloudinary } from 'cloudinary';
-import { CloudinaryStorage } from 'multer-storage-cloudinary';
-import multer from 'multer';
+import { v2 as cloudinary } from "cloudinary";
+import { CloudinaryStorage } from "multer-storage-cloudinary";
+import multer from "multer";
 
-// Initialize Cloudinary configuration
-const initCloudinary = async () => {
-  if (!process.env.CLOUDINARY_CLOUD_NAME || !process.env.CLOUDINARY_API_KEY || !process.env.CLOUDINARY_API_SECRET) {
-    throw new Error('Missing Cloudinary configuration. Please check your .env file');
+/* ======================= INIT ======================= */
+
+const initCloudinary = () => {
+  if (
+    !process.env.CLOUDINARY_CLOUD_NAME ||
+    !process.env.CLOUDINARY_API_KEY ||
+    !process.env.CLOUDINARY_API_SECRET
+  ) {
+    throw new Error("Missing Cloudinary environment variables");
   }
 
   cloudinary.config({
     cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
     api_key: process.env.CLOUDINARY_API_KEY,
     api_secret: process.env.CLOUDINARY_API_SECRET,
-    secure: true
+    secure: true,
   });
-  
-  console.log('Cloudinary initialized successfully');
-  return true;
+
+  console.log("✅ Cloudinary initialized");
 };
 
-// Create storage engine for Multer
+initCloudinary();
+
+/* ======================= MULTER STORAGE ======================= */
+
 const storage = new CloudinaryStorage({
   cloudinary,
-  params: (req, file) => ({
-    folder: 'movie-booking',
-    public_id: `movie-${Date.now()}`,
-    resource_type: 'auto',
-    allowed_formats: ['jpg', 'jpeg', 'png', 'gif', 'webp'],
-    transformation: [
-      { width: 500, height: 750, crop: 'fill', quality: 'auto' },
-      { fetch_format: 'auto' }
-    ]
-  })
+  params: {
+    folder: "movie-booking",
+    resource_type: "auto",
+    allowed_formats: ["jpg", "jpeg", "png", "webp"],
+    transformation: "w_500,h_750,c_fill,q_auto,f_auto",
+  },
 });
 
-// Initialize multer with the storage engine
-const upload = multer({ 
+const upload = multer({
   storage,
-  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
   fileFilter: (req, file, cb) => {
-    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
-    if (allowedTypes.includes(file.mimetype)) {
-      cb(null, true);
-    } else {
-      cb(new Error('Invalid file type. Only JPEG, PNG and WebP are allowed.'));
-    }
-  }
+    const allowed = ["image/jpeg", "image/png", "image/webp"];
+    if (allowed.includes(file.mimetype)) cb(null, true);
+    else cb(new Error("Only JPG, PNG, WEBP allowed"));
+  },
 });
 
-// Function to delete file from Cloudinary
-const deleteFromCloudinary = async (publicId) => {
+/* ======================= DELETE ======================= */
+
+const deleteFromCloudinary = async (public_id) => {
   try {
-    await cloudinary.uploader.destroy(publicId);
-    return true;
-  } catch (error) {
-    console.error('Error deleting file from Cloudinary:', error);
-    return false;
+    if (!public_id) return;
+    await cloudinary.uploader.destroy(public_id);
+  } catch (err) {
+    console.error("❌ Cloudinary delete error:", err);
   }
 };
 
-// Function to get public ID from Cloudinary URL
-const getPublicIdFromUrl = (url) => {
-  if (!url) return null;
-  const matches = url.match(/\/v\d+\/(.+?)(?:\.|$)/);
-  return matches ? matches[1] : null;
-};
-
-// Initialize Cloudinary when this module is imported
-const initializeCloudinary = async () => {
-  try {
-    await initCloudinary();
-  } catch (error) {
-    console.error('Failed to initialize Cloudinary:', error);
-    throw error;
-  }
-};
-
-export { 
-  cloudinary, 
-  upload, 
-  deleteFromCloudinary, 
-  getPublicIdFromUrl,
+export {
+  cloudinary,
+  upload,
+  deleteFromCloudinary,
   initCloudinary,
-  initializeCloudinary,
-  storage
 };
-
-// Initialize Cloudinary immediately when this module is imported
-initializeCloudinary().catch(console.error);
