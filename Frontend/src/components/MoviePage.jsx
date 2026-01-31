@@ -3,7 +3,7 @@ import { moviesPageStyles } from "../assets/dummyStyles"
 import { Link } from "react-router-dom"
 
 
-const API_BASE = "https://movie-booking-0z6f.onrender.com";
+const API_BASE = import.meta.env.VITE_API_URL || 'https://movie-booking-0z6f.onrender.com';
 const COLLAPSE_COUNT = 12;
 const PLACEHOLDER = "https://dummyimage.com/400x600/cccccc/000000&text=No+Poster";
 
@@ -16,7 +16,8 @@ const getUploadUrl = (maybe) => {
   
   // If it's a Cloudinary public_id (starts with 'image/upload/')
   if (maybe.startsWith("image/upload/")) {
-    return `https://res.cloudinary.com/YOUR_CLOUD_NAME/${maybe}`;
+    const cloudName = process.env.REACT_APP_CLOUDINARY_CLOUD_NAME || 'YOUR_CLOUD_NAME';
+    return `https://res.cloudinary.com/${cloudName}/${maybe}`;
   }
   
   // Handle absolute paths (starting with /uploads/)

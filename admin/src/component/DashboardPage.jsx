@@ -2,7 +2,9 @@ import React, { useEffect, useMemo, useState } from 'react'
 import { styles3, fontStyles2, styles2 } from '../assets/dummyStyles'
 import axios from 'axios'
 
-const API_BASE = 'http://localhost:5000';
+// const API_BASE_ = 'https://movie-booking-0z6f.onrender.com';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://movie-booking-0z6f.onrender.com';
+
 
 // format INR
 const fmtINR = (num) =>
@@ -23,11 +25,11 @@ const DashboardPage = () => {
                 // request paid bookings only (defensive: backend may already default to paid)
 
                 const [mRes, bRes, uRes] = await Promise.allSettled([
-                    axios.get(`${API_BASE}/api/movies`),
-                    axios.get(`${API_BASE}/api/bookings`, {
+                    axios.get(`${API_BASE_URL}/api/movies`),
+                    axios.get(`${API_BASE_URL}/api/bookings`, {
                         params: { paymentStatus: 'paid', limit: 1000 },
                     }),
-                    axios.get(`${API_BASE}/api/auth`), // not for user route but to get the user from the booking done is one user can have multi bookings.
+                    axios.get(`${API_BASE_URL}/api/auth`), // not for user route but to get the user from the booking done is one user can have multi bookings.
 
                 ])
 

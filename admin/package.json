@@ -1,13 +1,15 @@
 {
-  "name": "admin",
+  "name": "movie-booking-admin",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "lint": "eslint . --ext js,jsx --report-unused-disable-directives --max-warnings 0",
+    "preview:build": "vite preview --port 4173",
+    "deploy": "npm run build && netlify deploy --prod --dir=dist"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.1.18",

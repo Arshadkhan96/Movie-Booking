@@ -234,7 +234,6 @@ export const styles3 = {
   seatsValue: "font-semibold text-gray-200",
   
   // Details section
-  detailContainer: "mt-3 text-sm text-gray-300 space-y-2",
   detailItem: "flex items-center gap-2",
   detailIcon: "w-4 h-4 text-red-400",
   auditoriumLabel: "text-xs text-gray-400 mr-2",
@@ -449,7 +448,7 @@ export const styles5 = {
   cardDurationText: "text-blue-400 text-sm",
   cardDescription: "text-gray-400 text-sm leading-relaxed line-clamp-3 mb-4 min-h-[56px]",
   cardActions: "flex items-center justify-between",
-  cardViewButton: "flex items-center gap-2 px-4 md:px-2 md:text-xs py-2 bg-gradient-to-r from-red-600 to-red-700 rounded-xl text-white text-sm font-semibold hover:from-red-700 hover:to-red-800 transition-all duration-300 shadow-lg hover:shadow-red-500/25 cursor-pointer",
+  cardViewButton: "flex items-center gap-2 px-4 md:px-2 md:text-xs py-2 bg-gradient-to-r from-red-600 to-red-700 rounded-xl text-white text-sm font-semibold hover:from-red-700 hover:to-red-800 transition-all duration-300 cursor-pointer transform hover:scale-[1.02] shadow-lg",
   cardTrailerButton: "flex items-center gap-2 px-3 py-2 gradient-border rounded-xl text-gray-300 text-sm hover:text-white hover:border-red-500/60 transition-all duration-300 cursor-pointer",
   cardTrailerIcon: "w-4 h-4 text-red-500",
   
@@ -624,7 +623,6 @@ export const styles5 = {
   seatsValue: "font-semibold text-gray-200",
   
   // Details section
-  detailContainer: "mt-3 text-sm text-gray-300 space-y-2",
   detailItem: "flex items-center gap-2",
   detailIcon: "w-4 h-4 text-red-400",
   auditoriumLabel: "text-xs text-gray-400 mr-2",

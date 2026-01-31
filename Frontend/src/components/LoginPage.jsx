@@ -4,8 +4,7 @@ import { toast, ToastContainer } from "react-toastify";
 import { ArrowLeft, Clapperboard, Eye, EyeOff, Film, Popcorn } from "lucide-react";
 import axios from 'axios'
 
-
-const API_BASE = 'https://movie-booking-0z6f.onrender.com'
+const API_BASE = import.meta.env.VITE_API_URL || 'https://movie-booking-0z6f.onrender.com'
 
 const LoginPage = () => {
   const [formData, setFormData] = useState({
@@ -39,9 +38,16 @@ const LoginPage = () => {
         email:formData.email.trim(),
         password: formData.password,
       };
-      const res = await axios.post(`${API_BASE}/login`, payload,{
-        headers: {"Content-Type":"application/json"}
+      const res = await axios.post(`${API_BASE}/login`, payload, {
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+
+        withCredentials: true
+
       });
+      console.log(res,'reslogin')
 
       const data = res.data;
       if(data && data.success){
@@ -79,7 +85,7 @@ const LoginPage = () => {
         toast.error(data?.message ||'Login Failed');
       }
     } catch (err) {
-      console.error("Login error:", err);
+      console.error("Login error:", err); 
       const serverMsg =
         err?.response?.data?.message || err?.message || "Server error";
 

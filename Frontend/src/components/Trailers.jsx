@@ -11,7 +11,7 @@ import { trailersStyles, trailersCSS } from "../assets/dummyStyles";
 import { useEffect, useRef, useState } from "react";
 import axios  from "axios"
 
-const API_BASE = "https://movie-booking-0z6f.onrender.com";
+const API_BASE = import.meta.env.VITE_API_URL || "https://movie-booking-0z6f.onrender.com";
 
 
 const PLACEHOLDER_THUMB =

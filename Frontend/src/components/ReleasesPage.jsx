@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { releasesStyles } from "../assets/dummyStyles";
 
 const PLACEHOLDER_IMG = "https://via.placeholder.com/400x600?text=No+Image";
-const API_BASE = 'https://movie-booking-0z6f.onrender.com';
+const API_BASE = import.meta.env.VITE_API_URL || 'https://movie-booking-0z6f.onrender.com';
 
 //to get img from uploads folder
 const getUploadUrl = (maybeFilenameOrUrl) => {
@@ -16,7 +16,8 @@ const getUploadUrl = (maybeFilenameOrUrl) => {
   
   // If it's a Cloudinary public_id (starts with 'image/upload/')
   if (maybeFilenameOrUrl.startsWith("image/upload/")) {
-    return `https://res.cloudinary.com/YOUR_CLOUD_NAME/${maybeFilenameOrUrl}`;
+    const cloudName = process.env.REACT_APP_CLOUDINARY_CLOUD_NAME || 'YOUR_CLOUD_NAME';
+    return `https://res.cloudinary.com/${cloudName}/${maybeFilenameOrUrl}`;
   }
   
   // For backward compatibility, check if it's a local path

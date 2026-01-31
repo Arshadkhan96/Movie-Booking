@@ -4,9 +4,10 @@ import axios from "axios"
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useEffect } from 'react'
-import { Clock ,  Film, MapPin, QrCode,ChevronDown } from "lucide-react"
+import { Clock ,  Film, MapPin, QrCode,ChevronDown,  X  } from "lucide-react"
 
-const  API_BASE = "https://movie-booking-0z6f.onrender.com"
+const API_BASE = import.meta.env.VITE_API_URL || 'https://movie-booking-0z6f.onrender.com'
+
 
 function getStoreToken() {
   return(
@@ -299,9 +300,8 @@ const BookingsPage = () => {
     }
   };
 
-  //close
-
-  const closeModel = () => setScannedDetails(null);
+  // Close modal
+  const closeModal = () => setScannedDetails(null);
 
     return (
     <div className={bookingsPageStyles.pageContainer}>

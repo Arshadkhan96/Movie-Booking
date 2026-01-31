@@ -16,7 +16,7 @@ import {
 import { signUpStyles } from "../assets/dummyStyles";
 import axios from 'axios'
 
-const API_BASE = 'https://movie-booking-0z6f.onrender.com'
+const API_BASE = import.meta.env.VITE_API_URL || 'https://movie-booking-0z6f.onrender.com';
 
 const SignUpPage = () => {
   const [formData, setFormData] = useState({
@@ -124,25 +124,26 @@ const SignUpPage = () => {
         birthDate: formData.birthDate,
         password: formData.password,
       };
-      const response = await axios.post(`${API_BASE}/register`,payload,{
+      const response = await axios.post(`${API_BASE}/api/auth/register`,payload,{
         headers: {'Content-Type':'application/json'},
       })
-      if(response.data && response.data.success){
-        toast.success('Account Created Successfully! Redirecting to Login....');
+      console.log(response,'resSignup')
+      // if(response.data && response.data.success){
+      //   toast.success('Account Created Successfully! Redirecting to Login....');
 
-        if(response.data.token){
-          localStorage.setItem('token', response.data.token);
-        }
-        if(response.data.user){
-          localStorage.setItem('user', JSON.stringify(response.data.user));
-        }
+      //   if(response.data.token){
+      //     localStorage.setItem('token', response.data.token);
+      //   }
+      //   if(response.data.user){
+      //     localStorage.setItem('user', JSON.stringify(response.data.user));
+      //   }
 
-        setTimeout(()=>{
-          window.location.href = '/login';  
-        }, 1200);
-      }else{
-          toast.error(response.data?.message || "Registration Failed.")
-        }
+      //   setTimeout(()=>{
+      //     window.location.href = '/login';  
+      //   }, 1200);
+      // }else{
+      //     toast.error(response.data?.message || "Registration Failed.")
+      //   }
       }
      catch (err) {
       console.error("Registration error:", err);

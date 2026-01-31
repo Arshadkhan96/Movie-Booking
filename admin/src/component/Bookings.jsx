@@ -30,7 +30,8 @@ function getStoredToken() {
   );
 }
 
-const API_BASE = 'http://localhost:5000';
+// const API_BASE = 'https://movie-booking-0z6f.onrender.com/api';
+const API_BASE = import.meta.env.VITE_API_URL || 'https://movie-booking-0z6f.onrender.com'
 
 
 const Bookings = () => {
@@ -61,12 +62,12 @@ const Bookings = () => {
         let res;
         // Try the endpoint that matches your network tab
         try {
-          res = await axios.get(`${API_BASE}/my`, { headers, params });
+          res = await axios.get(`${API_BASE}/bookings/my`, { headers, params });
           console.log('Bookings data received from /my:', res.data);
         } catch (err) {
           console.warn('First API call failed, trying fallback endpoint...', err.message);
           // Try fallback endpoint
-          res = await axios.get(`${API_BASE}/api/bookings`, { headers, params });
+          res = await axios.get(`${API_BASE}/bookings`, { headers, params });
           console.log('Bookings data received from /api/bookings:', res.data);
         }
 

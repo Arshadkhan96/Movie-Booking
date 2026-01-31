@@ -4,7 +4,9 @@ import axios from 'axios';
 import { ToastContainer, toast } from 'react-toastify';
 import { Film , Image as ImageIcon, Play, Star, Clock, Plus, X, Users,Upload} from 'lucide-react';
  
-const API_HOST = 'http://localhost:5000/' 
+// API configuration
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://movie-booking-0z6f.onrender.com';
+
 
 const Addpage = () => {
      // form state
@@ -391,24 +393,35 @@ const Addpage = () => {
       appendFilesToForm(form, "producerFiles", producerImages);
     }
     try {
-      const res = await axios.post(`${API_HOST}api/movies`, form, {
+      const res = await axios.post(`${API_BASE_URL}/api/movies`, form, {
         headers: {
           "Content-Type": "multipart/form-data",
         },
       });
-      if(res?.data?.success){
+      
+      if(res?.data?.success) {
         toast.success("Movie added successfully!");
         resetForm();
-      }
-      else{
+      } else {
         toast.error(res?.data?.message || "Failed to add movie.");
       }
     } catch(err) {
-      console.error("Submit error:",err);
+      console.error("Submit error:", err);
       const msg = err?.response?.data?.message || err.message || "Failed to add movie.";
       toast.error(msg);
-    } finally{
-        setIsUploading(false);
+      
+      // Log additional error details for debugging
+      if (err.response) {
+        console.error("Response data:", err.response.data);
+        console.error("Response status:", err.response.status);
+        console.error("Response headers:", err.response.headers);
+      } else if (err.request) {
+        console.error("No response received:", err.request);
+      } else {
+        console.error('Request error:', err.message);
+      }
+    } finally {
+      setIsUploading(false);
     }
   } 
 
