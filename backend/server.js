@@ -1,96 +1,106 @@
-import express from "express"
-import cors from "cors"
-import dotenv from "dotenv/config"
-import { connectDB } from "./config/db.js";
-import userRouter from "./routes/userRoute.js";
-import movieRouter from "./routes/movieRoute.js";
+import express from "express";
+import cors from "cors";
+import dotenv from "dotenv/config";
 import path from "path";
-import { fileURLToPath } from 'url';
-import bookingRouter from "./routes/bookingRoute.js";
+import { fileURLToPath } from "url";
+
+import { connectDB } from "./config/db.js";
 import { initCloudinary } from "./config/cloudinary.js";
 
-// ES module equivalent of __dirname
+import userRouter from "./routes/userRoute.js";
+import movieRouter from "./routes/movieRoute.js";
+import bookingRouter from "./routes/bookingRoute.js";
+
+// ES module __dirname fix
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
 const port = process.env.PORT || 5000;
 
-// CORS Configuration
+/* =======================
+   CORS CONFIG (FIXED)
+======================= */
 const allowedOrigins = [
-  'http://localhost:3000',
-  'http://localhost:5173',  // Frontend development server (Vite default port)
-  'http://localhost:5174',  // Alternative frontend port
-  'https://movie-007-booking.netlify.app'
+  "http://localhost:5173",
+  "http://localhost:5174",
+  "https://movie-admin-panel.netlify.app",
+  "https://cine-ticket-hub.netlify.app",
+  "https://movie-booking-0z6f.onrender.com",
 ];
 
-// Apply CORS middleware with specific options
-app.use((req, res, next) => {
-  const origin = req.headers.origin;
-  
-  // Check if the request origin is in the allowed origins
-  if (allowedOrigins.includes(origin)) {
-    res.header('Access-Control-Allow-Origin', origin);
-    res.header('Access-Control-Allow-Credentials', 'true');
-    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
-    
-    // Handle preflight requests
-    if (req.method === 'OPTIONS') {
-      return res.status(200).end();
-    }
-  }
-  
-  next();
-});
-app.use(express.json({ limit: '50mb' }));
-app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+app.use(
+  cors({
+    origin: function (origin, callback) {
+      // allow requests with no origin (Postman, mobile apps)
+      if (!origin) return callback(null, true);
 
-// NOTE: Remove static /uploads serving - all uploads should go to Cloudinary
-// Do NOT serve local uploads directory as it defeats the purpose of using Cloudinary
+      if (allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error("CORS not allowed"));
+      }
+    },
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+  })
+);
 
-// ROUTES
+/* =======================
+   BODY PARSER
+======================= */
+app.use(express.json({ limit: "50mb" }));
+app.use(express.urlencoded({ extended: true, limit: "50mb" }));
+
+/* =======================
+   STATIC FILES
+======================= */
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+
+/* =======================
+   ROUTES
+======================= */
 app.use("/api/auth", userRouter);
 app.use("/api/movies", movieRouter);
 app.use("/api/bookings", bookingRouter);
 
+/* =======================
+   TEST ROUTE
+======================= */
 app.get("/", (req, res) => {
-  res.send(`
-    <h1>API is running</h1>
-    <p>Test static files: <a href="/test-upload">Test Uploads</a></p>
-  `);
+  res.send("<h1>🚀 Movie Booking API is Running</h1>");
 });
 
-// Error handling middleware
+/* =======================
+   ERROR HANDLER
+======================= */
 app.use((err, req, res, next) => {
-  console.error('Error:', err.stack);
+  console.error("Error:", err.message);
   res.status(500).json({
     success: false,
-    message: 'Something went wrong!',
-    error: process.env.NODE_ENV === 'development' ? err.message : {}
+    message: err.message || "Server Error",
   });
 });
 
-// Initialize Database and Cloudinary
-const initializeApp = async () => {
+/* =======================
+   START SERVER
+======================= */
+const startServer = async () => {
   try {
-    // Connect to MongoDB
     await connectDB();
-    
-    // Initialize Cloudinary
     await initCloudinary();
-    console.log('Cloudinary initialized successfully');
-    
-    // Start the server
+
+    console.log("✅ MongoDB Connected");
+    console.log("✅ Cloudinary Initialized");
+
     app.listen(port, () => {
-      console.log(`Server Started on http://localhost:${port}`);
-      console.log('All file uploads will be stored in Cloudinary');
+      console.log(`🚀 Server running on port ${port}`);
     });
   } catch (error) {
-    console.error('Failed to initialize the application:', error);
+    console.error("❌ Server start failed:", error);
     process.exit(1);
   }
 };
 
-// Start the application
-initializeApp();
+startServer();

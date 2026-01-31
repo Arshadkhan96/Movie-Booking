@@ -1,25 +1,10 @@
 import mongoose from "mongoose";
 import Movie from "../models/movieModel.js";
-import { cloudinary } from "../config/cloudinary.js";
+import { cloudinary, normalizeUpload } from "../config/cloudinary.js";
 
 /* ======================================================
    HELPERS
 ====================================================== */
-
-// Normalize Cloudinary upload (multer-storage-cloudinary)
-const normalizeUpload = (file) => {
-  if (!file) return null;
-
-  // multer-storage-cloudinary gives this
-  if (file.secure_url && file.public_id) {
-    return {
-      url: file.secure_url,
-      public_id: file.public_id,
-    };
-  }
-
-  return null;
-};
 
 // Safe JSON parse
 const safeParseJSON = (v) => {
@@ -46,7 +31,7 @@ const deleteFromCloudinary = async (fileObj) => {
 const personToPreview = (p) => ({
   name: p?.name || "",
   role: p?.role || "",
-  preview: p?.file?.url || null,
+  preview: p?.file || null, // file is now a string URL
 });
 
 // Normalize movie before sending to frontend
@@ -54,8 +39,8 @@ const normalizeItemForOutput = (it = {}) => {
   const obj = { ...it };
 
   obj.thumbnail =
-    it.poster?.url ||
-    it.latestTrailer?.thumbnail?.url ||
+    it.poster || // poster is now a string URL
+    it.latestTrailer?.thumbnail || // thumbnail is now a string URL
     null;
 
   obj.cast = (it.cast || []).map(personToPreview);
@@ -65,7 +50,7 @@ const normalizeItemForOutput = (it = {}) => {
   if (it.latestTrailer) {
     obj.latestTrailer = {
       ...it.latestTrailer,
-      thumbnail: it.latestTrailer.thumbnail?.url || null,
+      thumbnail: it.latestTrailer.thumbnail || null, // thumbnail is now a string URL
       directors: (it.latestTrailer.directors || []).map(personToPreview),
       producers: (it.latestTrailer.producers || []).map(personToPreview),
       singers: (it.latestTrailer.singers || []).map(personToPreview),
@@ -85,16 +70,16 @@ export async function createMovie(req, res) {
 
     // Poster (ONLY from Cloudinary upload)
     const poster = req.files?.poster?.[0]
-      ? normalizeUpload(req.files.poster[0])
+      ? normalizeUpload(req.files.poster[0])?.url
       : null;
 
     // Trailer thumbnail / video
     const trailerUrl = req.files?.trailerUrl?.[0]
-      ? normalizeUpload(req.files.trailerUrl[0])
+      ? normalizeUpload(req.files.trailerUrl[0])?.url
       : null;
 
     const videoUrl = req.files?.videoUrl?.[0]
-      ? normalizeUpload(req.files.videoUrl[0])
+      ? normalizeUpload(req.files.videoUrl[0])?.url
       : null;
 
     const categories =
@@ -121,8 +106,8 @@ export async function createMovie(req, res) {
       req.files[fieldName].forEach((file, i) => {
         const normalized = normalizeUpload(file);
         if (!normalized) return;
-        if (arr[i]) arr[i].file = normalized;
-        else arr[i] = { name: "", role: "", file: normalized };
+        if (arr[i]) arr[i].file = normalized.url;
+        else arr[i] = { name: "", role: "", file: normalized.url };
       });
     };
 
@@ -135,7 +120,7 @@ export async function createMovie(req, res) {
     const latestTrailer = safeParseJSON(body.latestTrailer) || {};
 
     if (req.files?.ltThumbnail?.[0]) {
-      latestTrailer.thumbnail = normalizeUpload(req.files.ltThumbnail[0]);
+      latestTrailer.thumbnail = normalizeUpload(req.files.ltThumbnail[0])?.url;
     }
 
     latestTrailer.title = body.ltTitle || latestTrailer.title || "";
@@ -151,8 +136,8 @@ export async function createMovie(req, res) {
       req.files[field].forEach((file, i) => {
         const normalized = normalizeUpload(file);
         if (!normalized) return;
-        if (arr[i]) arr[i].file = normalized;
-        else arr[i] = { name: "", role: "", file: normalized };
+        if (arr[i]) arr[i].file = normalized.url;
+        else arr[i] = { name: "", role: "", file: normalized.url };
       });
     };
 

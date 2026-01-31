@@ -34,7 +34,9 @@ const uploadMiddleware = (req, res, next) => {
     if (req.files) {
       console.log('✅ Files uploaded to Cloudinary:', Object.keys(req.files));
       if (req.files.poster && req.files.poster[0]) {
-        console.log('📸 Poster uploaded:', req.files.poster[0].secure_url);
+        console.log('📸 Poster uploaded file object:', JSON.stringify(req.files.poster[0], null, 2));
+        console.log('📸 Poster path (URL):', req.files.poster[0].path);
+        console.log('📸 Poster filename (public_id):', req.files.poster[0].filename);
       }
     }
     
