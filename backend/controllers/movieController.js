@@ -113,6 +113,16 @@ const normalizeItemForOutput = (it = {}) => {
 export async function createMovie(req, res) {
   try {
     const body = req.body || {};
+    console.log("FILES RECEIVED (multer -> Cloudinary):", Object.fromEntries(
+      Object.entries(req.files || {}).map(([field, files]) => [
+        field,
+        files.map(f => ({
+          originalname: f.originalname,
+          path: f.path,
+          isCloudinary: f.path?.includes("cloudinary.com")
+        }))
+      ])
+    ));
 
     if (!isCloudinaryConfigured()) {
       return res.status(500).json({
@@ -126,14 +136,17 @@ export async function createMovie(req, res) {
     console.log("Body keys:", Object.keys(body));
     console.log("Files received:", Object.keys(req.files || {}));
 
-    // ===== HANDLE POSTER =====
-    let poster = toCloudinaryUrl(req.files?.poster?.[0]);
+    const fileUrl = (field) => toCloudinaryUrl(req.files?.[field]?.[0]);
 
-    if (!poster && body.poster && (body.poster.startsWith("data:image") || body.poster.startsWith("http"))) {
-      const result = await uploadBase64ToCloudinary(body.poster);
-      if (result?.url) poster = result.url;
-    } else if (!poster && body.poster) {
-      poster = toCloudinaryUrl(body.poster);
+    // ===== HANDLE POSTER =====
+    let poster = fileUrl("poster"); // prefer multer/Cloudinary
+    if (!poster && body.poster) {
+      if (body.poster.startsWith("data:image") || body.poster.startsWith("http")) {
+        const result = await uploadBase64ToCloudinary(body.poster);
+        if (result?.url) poster = result.url;
+      } else {
+        poster = toCloudinaryUrl(body.poster);
+      }
     }
 
     const looksCloudinary = (u) => typeof u === "string" && u.includes("cloudinary.com");
@@ -147,10 +160,8 @@ export async function createMovie(req, res) {
     }
 
     // ===== HANDLE OTHER MEDIA FILES =====
-    const trailerUrl =
-      toCloudinaryUrl(req.files?.trailerUrl?.[0]) || toCloudinaryUrl(body.trailerUrl) || null;
-    const videoUrl =
-      toCloudinaryUrl(req.files?.videoUrl?.[0]) || toCloudinaryUrl(body.videoUrl) || null;
+    const trailerUrl = fileUrl("trailerUrl") || toCloudinaryUrl(body.trailerUrl) || null;
+    const videoUrl = fileUrl("videoUrl") || toCloudinaryUrl(body.videoUrl) || null;
 
     // ===== PARSE ARRAYS =====
     const categories =
@@ -176,8 +187,9 @@ export async function createMovie(req, res) {
     // ===== LATEST TRAILER =====
     const latestTrailer = safeParseJSON(body.latestTrailer) || {};
 
-    if (req.files?.ltThumbnail?.[0]) {
-      latestTrailer.thumbnail = toCloudinaryUrl(req.files.ltThumbnail[0]);
+    const ltThumb = fileUrl("ltThumbnail");
+    if (ltThumb) {
+      latestTrailer.thumbnail = ltThumb;
     } else if (body.ltThumbnail && (body.ltThumbnail.startsWith("data:image") || body.ltThumbnail.startsWith("http"))) {
       const result = await uploadBase64ToCloudinary(body.ltThumbnail);
       if (result?.url) latestTrailer.thumbnail = result.url;
