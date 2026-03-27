@@ -90,16 +90,7 @@ const uploadMiddleware = (req, res, next) => {
     });
   }
   
-  // For non-file uploads (Base64), skip multer
-  const contentType = req.headers['content-type'] || '';
-  if (!contentType.includes('multipart/form-data')) {
-    console.log('📝 Non-multipart request (likely Base64), skipping multer');
-    console.log('Body contains:', Object.keys(req.body || {}));
-    req.file = null;
-    return next();
-  }
-  
-  console.log('🔄 Processing multipart request with multer...');
+  console.log('🔄 Processing request with multer (CloudinaryStorage)...');
   
   cloudinaryUpload(req, res, (err) => {
     if (err) {
