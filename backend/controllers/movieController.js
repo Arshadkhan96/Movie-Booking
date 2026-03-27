@@ -1,12 +1,15 @@
 import mongoose from "mongoose";
 import Movie from "../models/movieModel.js";
-import { uploadBase64ToCloudinary, deleteFromCloudinary } from "../config/cloudinary.js";
+import {
+  uploadBase64ToCloudinary,
+  deleteFromCloudinary,
+  isCloudinaryConfigured,
+} from "../config/cloudinary.js";
 
 /* ======================================================
    HELPERS
 ====================================================== */
 
-// Safe JSON parse
 const safeParseJSON = (v) => {
   if (!v) return null;
   if (typeof v === "object") return v;
@@ -17,83 +20,71 @@ const safeParseJSON = (v) => {
   }
 };
 
-// Helper to extract public_id from Cloudinary URL
 const extractPublicId = (url) => {
-  if (!url || !url.includes('cloudinary.com')) return null;
-  
+  if (!url || !url.includes("cloudinary.com")) return null;
+
   try {
-    const urlParts = url.split('/');
-    const uploadIndex = urlParts.indexOf('upload');
-    
+    const urlParts = url.split("/");
+    const uploadIndex = urlParts.indexOf("upload");
     if (uploadIndex === -1) return null;
-    
-    // Get everything after 'upload/'
-    const afterUpload = urlParts.slice(uploadIndex + 2).join('/');
-    
-    // Remove file extension
-    const publicId = afterUpload.replace(/\.[^/.]+$/, "");
-    
-    return publicId;
-  } catch (error) {
-    console.error("Error extracting public_id:", error);
+    const afterUpload = urlParts.slice(uploadIndex + 2).join("/");
+    return afterUpload.replace(/\.[^/.]+$/, "");
+  } catch {
     return null;
   }
+};
+
+// Normalize any value (multer file or string) into a Cloudinary URL, otherwise null
+const toCloudinaryUrl = (input) => {
+  if (!input) return null;
+  const url =
+    typeof input === "string"
+      ? input
+      : input.path || input.secure_url || input.url || null;
+  return url && url.includes("cloudinary.com") ? url : null;
 };
 
 // Upload person files (for cast, directors, producers)
 const uploadPersonFiles = async (peopleArray, fieldName, req) => {
   if (!peopleArray || !Array.isArray(peopleArray)) return peopleArray;
-  
-  const updatedPeople = [...peopleArray];
-  
-  // Process file uploads from multer
+
+  const updated = [...peopleArray];
+
+  // Multer uploads (already on Cloudinary)
   if (req.files?.[fieldName]) {
     req.files[fieldName].forEach((file, i) => {
-      if (updatedPeople[i] && file.path) {
-        updatedPeople[i].file = file.path; // Cloudinary URL
-      } else if (file.path) {
-        updatedPeople[i] = { 
-          name: "", 
-          role: "", 
-          file: file.path 
-        };
+      const url = toCloudinaryUrl(file);
+      if (!url) return;
+      if (updated[i]) {
+        updated[i].file = url;
+      } else {
+        updated[i] = { name: "", role: "", file: url };
       }
     });
   }
-  
-  // Process Base64 images in people objects
-  for (let i = 0; i < updatedPeople.length; i++) {
-    const person = updatedPeople[i];
-    if (person?.file && person.file.startsWith('data:image')) {
-      try {
-        console.log(`📤 Uploading Base64 image for ${fieldName}[${i}]...`);
-        const result = await uploadBase64ToCloudinary(person.file);
-        if (result?.url) {
-          updatedPeople[i].file = result.url;
-          console.log(`✅ Uploaded ${fieldName}[${i}] to Cloudinary`);
-        }
-      } catch (error) {
-        console.error(`❌ Error uploading ${fieldName}[${i}]:`, error.message);
-      }
+
+  // Base64 uploads inside objects
+  for (let i = 0; i < updated.length; i++) {
+    const person = updated[i];
+    if (person?.file && person.file.startsWith("data:image")) {
+      const result = await uploadBase64ToCloudinary(person.file);
+      if (result?.url) updated[i].file = result.url;
     }
   }
-  
-  return updatedPeople;
+
+  return updated;
 };
 
-// Convert person object to frontend-safe preview
 const personToPreview = (p) => ({
   name: p?.name || "",
   role: p?.role || "",
   preview: p?.file || null,
 });
 
-// Normalize movie before sending to frontend
 const normalizeItemForOutput = (it = {}) => {
   const obj = { ...it };
 
   obj.thumbnail = it.poster || it.latestTrailer?.thumbnail || null;
-
   obj.cast = (it.cast || []).map(personToPreview);
   obj.directors = (it.directors || []).map(personToPreview);
   obj.producers = (it.producers || []).map(personToPreview);
@@ -118,122 +109,87 @@ const normalizeItemForOutput = (it = {}) => {
 export async function createMovie(req, res) {
   try {
     const body = req.body || {};
-    
-    console.log("\n🎬 CREATE MOVIE REQUEST =====================");
-    console.log("📋 Body keys:", Object.keys(body));
-    console.log("📁 Files received:", Object.keys(req.files || {}));
-    console.log("===========================================\n");
-    
+
+    if (!isCloudinaryConfigured()) {
+      return res.status(500).json({
+        success: false,
+        message:
+          "Image upload service (Cloudinary) is not configured. Set CLOUDINARY_CLOUD_NAME / CLOUDINARY_API_KEY / CLOUDINARY_API_SECRET.",
+      });
+    }
+
+    console.log("\nCREATE MOVIE REQUEST");
+    console.log("Body keys:", Object.keys(body));
+    console.log("Files received:", Object.keys(req.files || {}));
+
     // ===== HANDLE POSTER =====
-    let poster = null;
-    
-    // Option 1: Poster from file upload (multer)
-    if (req.files?.poster?.[0]?.path) {
-      poster = req.files.poster[0].path;
-      console.log("✅ Poster from file upload:", poster.substring(0, 100) + "...");
-    }
-    // Option 2: Poster as Base64 in body
-    else if (body.poster && (body.poster.startsWith('data:image') || body.poster.startsWith('http'))) {
-      console.log("📤 Processing poster from body...");
+    let poster = toCloudinaryUrl(req.files?.poster?.[0]);
+
+    if (!poster && body.poster && (body.poster.startsWith("data:image") || body.poster.startsWith("http"))) {
       const result = await uploadBase64ToCloudinary(body.poster);
-      if (result?.url) {
-        poster = result.url;
-        console.log("✅ Poster uploaded to Cloudinary:", poster.substring(0, 100) + "...");
-      } else {
-        console.log("❌ Failed to upload poster to Cloudinary");
-      }
+      if (result?.url) poster = result.url;
+    } else if (!poster && body.poster) {
+      poster = toCloudinaryUrl(body.poster);
     }
-    // Option 3: Poster in body (already a URL)
-    else if (body.poster) {
-      poster = body.poster;
-      console.log("📝 Using poster from body:", poster.substring(0, 100) + "...");
+
+    const looksCloudinary = (u) => typeof u === "string" && u.includes("cloudinary.com");
+    if (!poster || !looksCloudinary(poster)) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Poster must be uploaded to Cloudinary. Send multipart/form-data with field name 'poster' or provide a Cloudinary URL.",
+        receivedPoster: poster,
+      });
     }
-    
+
     // ===== HANDLE OTHER MEDIA FILES =====
-    const trailerUrl = req.files?.trailerUrl?.[0]?.path || body.trailerUrl || null;
-    const videoUrl = req.files?.videoUrl?.[0]?.path || body.videoUrl || null;
-    
+    const trailerUrl =
+      toCloudinaryUrl(req.files?.trailerUrl?.[0]) || toCloudinaryUrl(body.trailerUrl) || null;
+    const videoUrl =
+      toCloudinaryUrl(req.files?.videoUrl?.[0]) || toCloudinaryUrl(body.videoUrl) || null;
+
     // ===== PARSE ARRAYS =====
-    const categories = safeParseJSON(body.categories) || 
-                     (body.categories ? body.categories.split(",").map(s => s.trim()) : []);
-    
+    const categories =
+      safeParseJSON(body.categories) ||
+      (body.categories ? body.categories.split(",").map((s) => s.trim()) : []);
+
     const slots = safeParseJSON(body.slots) || [];
-    
+
     const seatPrices = safeParseJSON(body.seatPrices) || {
       standard: Number(body.standard || 0),
       recliner: Number(body.recliner || 0),
     };
-    
-    // ===== HANDLE PEOPLE (CAST, DIRECTORS, PRODUCERS) =====
+
+    // ===== PEOPLE =====
     let cast = safeParseJSON(body.cast) || [];
     let directors = safeParseJSON(body.directors) || [];
     let producers = safeParseJSON(body.producers) || [];
-    
-    // Upload person images to Cloudinary
-    console.log("\n👥 Uploading people images...");
+
     cast = await uploadPersonFiles(cast, "castFiles", req);
     directors = await uploadPersonFiles(directors, "directorFiles", req);
     producers = await uploadPersonFiles(producers, "producerFiles", req);
-    console.log("✅ People images processed");
-    
+
     // ===== LATEST TRAILER =====
     const latestTrailer = safeParseJSON(body.latestTrailer) || {};
-    
-    // Handle latest trailer thumbnail
-    if (req.files?.ltThumbnail?.[0]?.path) {
-      latestTrailer.thumbnail = req.files.ltThumbnail[0].path;
-    } 
-    else if (body.ltThumbnail && (body.ltThumbnail.startsWith('data:image') || body.ltThumbnail.startsWith('http'))) {
+
+    if (req.files?.ltThumbnail?.[0]) {
+      latestTrailer.thumbnail = toCloudinaryUrl(req.files.ltThumbnail[0]);
+    } else if (body.ltThumbnail && (body.ltThumbnail.startsWith("data:image") || body.ltThumbnail.startsWith("http"))) {
       const result = await uploadBase64ToCloudinary(body.ltThumbnail);
       if (result?.url) latestTrailer.thumbnail = result.url;
+    } else if (body.ltThumbnail) {
+      latestTrailer.thumbnail = toCloudinaryUrl(body.ltThumbnail);
     }
-    else if (body.ltThumbnail) {
-      latestTrailer.thumbnail = body.ltThumbnail;
-    }
-    
-    // Latest trailer metadata
-    latestTrailer.title = body.ltTitle || latestTrailer.title || "";
-    latestTrailer.url = body.ltUrl || latestTrailer.url || "";
-    latestTrailer.videoId = body.ltVideoId || latestTrailer.videoId || "";
-    
-    // Latest trailer people
-    console.log("\n🎬 Uploading latest trailer people...");
-    latestTrailer.directors = await uploadPersonFiles(
-      latestTrailer.directors || [], 
-      "ltDirectorFiles", 
-      req
-    );
-    latestTrailer.producers = await uploadPersonFiles(
-      latestTrailer.producers || [], 
-      "ltProducerFiles", 
-      req
-    );
-    latestTrailer.singers = await uploadPersonFiles(
-      latestTrailer.singers || [], 
-      "ltSingerFiles", 
-      req
-    );
-    console.log("✅ Latest trailer people processed");
-    
-    // ===== VALIDATION =====
-    if (!poster) {
-      console.warn("⚠️ No poster provided for movie");
-    }
-    
-    if (!body.movieName) {
-      return res.status(400).json({
-        success: false,
-        message: "Movie name is required"
-      });
-    }
-    
-    // ===== CREATE MOVIE DOCUMENT =====
+
+    // ===== CREATE DOCUMENT =====
     const movieData = {
-      _id: new mongoose.Types.ObjectId(),
-      type: body.type || "normal",
       movieName: body.movieName || "",
+      type: ["normal", "featured", "releaseSoon", "latestTrailers"].includes(body.type)
+        ? body.type
+        : "normal",
       categories,
       poster,
+      thumbnail: poster,
       trailerUrl,
       videoUrl,
       rating: Number(body.rating) || 0,
@@ -247,44 +203,23 @@ export async function createMovie(req, res) {
       latestTrailer,
       auditorium: body.auditorium || "Audi 1",
     };
-    
-    console.log("\n💾 Saving movie to database...");
+
     const doc = new Movie(movieData);
     const saved = await doc.save();
-    console.log("✅ Movie saved with ID:", saved._id);
-    
-    // ===== SEND RESPONSE =====
+
     const responseData = normalizeItemForOutput(saved.toObject());
-    
-    console.log("\n✅ MOVIE CREATION COMPLETE");
-    console.log("🎬 Movie Name:", responseData.movieName);
-    console.log("📸 Poster URL:", responseData.poster ? "Present" : "Missing");
-    console.log("🏷️ Type:", responseData.type);
-    console.log("===========================================\n");
-    
     return res.status(201).json({
       success: true,
       message: "Movie created successfully",
       data: responseData,
     });
-    
   } catch (err) {
-    console.error("\n❌ CREATE MOVIE ERROR ======================");
-    console.error("Error:", err.message);
-    console.error("Stack:", err.stack);
-    console.error("===========================================\n");
-    
-    // Clean up any uploaded files if error occurred
-    if (req.files) {
-      console.log("🧹 Cleaning up uploaded files due to error...");
-      // Note: Cloudinary files are automatically stored, we can't easily delete them here
-      // without tracking public_ids
-    }
-    
-    res.status(500).json({ 
-      success: false, 
+    console.error("CREATE MOVIE ERROR:", err);
+
+    res.status(500).json({
+      success: false,
       message: "Failed to create movie",
-      error: process.env.NODE_ENV === 'development' ? err.message : 'Internal server error'
+      error: process.env.NODE_ENV === "development" ? err.message : "Internal server error",
     });
   }
 }
@@ -295,26 +230,14 @@ export async function createMovie(req, res) {
 
 export async function getMovies(req, res) {
   try {
-    console.log("📋 Fetching all movies...");
-    
-    const items = await Movie.find()
-      .sort("-createdAt")
-      .lean();
-
+    const items = await Movie.find().sort("-createdAt").lean();
     const normalized = items.map(normalizeItemForOutput);
-
-    console.log(`✅ Found ${normalized.length} movies`);
-    
-    res.json({
-      success: true,
-      total: normalized.length,
-      items: normalized,
-    });
+    res.json({ success: true, total: normalized.length, items: normalized });
   } catch (err) {
-    console.error("❌ Get Movies Error:", err);
-    res.status(500).json({ 
+    console.error("Get Movies Error:", err);
+    res.status(500).json({
       success: false,
-      message: "Failed to fetch movies" 
+      message: "Failed to fetch movies",
     });
   }
 }
@@ -326,36 +249,21 @@ export async function getMovies(req, res) {
 export async function getMovieById(req, res) {
   try {
     const movieId = req.params.id;
-    console.log(`🔍 Fetching movie with ID: ${movieId}`);
-    
     if (!mongoose.Types.ObjectId.isValid(movieId)) {
-      return res.status(400).json({ 
-        success: false, 
-        message: "Invalid movie ID" 
-      });
-    }
-    
-    const item = await Movie.findById(movieId).lean();
-    
-    if (!item) {
-      console.log(`❌ Movie not found: ${movieId}`);
-      return res.status(404).json({ 
-        success: false, 
-        message: "Movie not found" 
-      });
+      return res.status(400).json({ success: false, message: "Invalid movie ID" });
     }
 
-    console.log(`✅ Movie found: ${item.movieName}`);
-    
-    res.json({
-      success: true,
-      item: normalizeItemForOutput(item),
-    });
+    const item = await Movie.findById(movieId).lean();
+    if (!item) {
+      return res.status(404).json({ success: false, message: "Movie not found" });
+    }
+
+    res.json({ success: true, item: normalizeItemForOutput(item) });
   } catch (err) {
-    console.error("❌ Get Movie Error:", err);
-    res.status(500).json({ 
+    console.error("Get Movie Error:", err);
+    res.status(500).json({
       success: false,
-      message: "Failed to fetch movie" 
+      message: "Failed to fetch movie",
     });
   }
 }
@@ -367,55 +275,25 @@ export async function getMovieById(req, res) {
 export async function deleteMovie(req, res) {
   try {
     const movieId = req.params.id;
-    console.log(`🗑️ Deleting movie with ID: ${movieId}`);
-    
     if (!mongoose.Types.ObjectId.isValid(movieId)) {
-      return res.status(400).json({ 
-        success: false, 
-        message: "Invalid movie ID" 
-      });
+      return res.status(400).json({ success: false, message: "Invalid movie ID" });
     }
-    
+
     const movie = await Movie.findById(movieId);
-    
     if (!movie) {
-      console.log(`❌ Movie not found: ${movieId}`);
-      return res.status(404).json({ 
-        success: false, 
-        message: "Movie not found" 
-      });
+      return res.status(404).json({ success: false, message: "Movie not found" });
     }
-    
-    console.log(`📋 Movie to delete: ${movie.movieName}`);
-    
-    // Delete main files from Cloudinary
-    console.log("🧹 Cleaning up Cloudinary files...");
-    
-    if (movie.poster) {
-      const posterPublicId = extractPublicId(movie.poster);
-      if (posterPublicId) {
-        await deleteFromCloudinary(posterPublicId);
-        console.log("✅ Deleted poster");
-      }
-    }
-    
-    if (movie.trailerUrl) {
-      const trailerPublicId = extractPublicId(movie.trailerUrl);
-      if (trailerPublicId) {
-        await deleteFromCloudinary(trailerPublicId);
-        console.log("✅ Deleted trailer");
-      }
-    }
-    
-    if (movie.videoUrl) {
-      const videoPublicId = extractPublicId(movie.videoUrl);
-      if (videoPublicId) {
-        await deleteFromCloudinary(videoPublicId);
-        console.log("✅ Deleted video");
-      }
-    }
-    
-    // Delete people files
+
+    // Delete Cloudinary assets
+    const maybeDelete = async (url) => {
+      const pid = extractPublicId(url);
+      if (pid) await deleteFromCloudinary(pid);
+    };
+
+    await maybeDelete(movie.poster);
+    await maybeDelete(movie.trailerUrl);
+    await maybeDelete(movie.videoUrl);
+
     const people = [
       ...(movie.cast || []),
       ...(movie.directors || []),
@@ -424,42 +302,20 @@ export async function deleteMovie(req, res) {
       ...(movie.latestTrailer?.producers || []),
       ...(movie.latestTrailer?.singers || []),
     ];
-    
-    console.log(`🧑‍🤝‍🧑 Deleting ${people.length} people files...`);
-    
     for (const p of people) {
-      if (p?.file) {
-        const publicId = extractPublicId(p.file);
-        if (publicId) {
-          await deleteFromCloudinary(publicId);
-        }
-      }
+      if (p?.file) await maybeDelete(p.file);
     }
-    
-    // Delete latest trailer thumbnail
     if (movie.latestTrailer?.thumbnail) {
-      const thumbnailPublicId = extractPublicId(movie.latestTrailer.thumbnail);
-      if (thumbnailPublicId) {
-        await deleteFromCloudinary(thumbnailPublicId);
-        console.log("✅ Deleted latest trailer thumbnail");
-      }
+      await maybeDelete(movie.latestTrailer.thumbnail);
     }
-    
-    // Delete from database
+
     await Movie.findByIdAndDelete(movieId);
-    
-    console.log(`✅ Movie "${movie.movieName}" deleted successfully`);
-    
-    res.json({ 
-      success: true, 
-      message: "Movie deleted successfully" 
-    });
-    
+    res.json({ success: true, message: "Movie deleted successfully" });
   } catch (err) {
-    console.error("❌ Delete Movie Error:", err);
-    res.status(500).json({ 
+    console.error("Delete Movie Error:", err);
+    res.status(500).json({
       success: false,
-      message: "Failed to delete movie" 
+      message: "Failed to delete movie",
     });
   }
 }

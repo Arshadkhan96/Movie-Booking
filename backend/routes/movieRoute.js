@@ -81,6 +81,14 @@ const uploadMiddleware = (req, res, next) => {
   console.log('Content-Type:', req.headers['content-type']);
   console.log('Method:', req.method);
   console.log('URL:', req.url);
+
+  // Fail fast if Cloudinary isn't configured
+  if (!process.env.CLOUDINARY_CLOUD_NAME || !process.env.CLOUDINARY_API_KEY || !process.env.CLOUDINARY_API_SECRET) {
+    return res.status(500).json({
+      success: false,
+      message: "Cloudinary credentials are missing. Set CLOUDINARY_CLOUD_NAME / CLOUDINARY_API_KEY / CLOUDINARY_API_SECRET.",
+    });
+  }
   
   // For non-file uploads (Base64), skip multer
   const contentType = req.headers['content-type'] || '';

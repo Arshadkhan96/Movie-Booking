@@ -7,8 +7,13 @@ import { fileURLToPath } from "url";
 import { connectDB } from "./config/db.js";
 import { initCloudinary, cloudinary } from "./config/cloudinary.js";
 
-// Initialize Cloudinary
-initCloudinary();
+// Initialize Cloudinary (fail fast if missing)
+try {
+  initCloudinary();
+} catch (err) {
+  console.error("Cloudinary initialization failed:", err.message);
+  process.exit(1);
+}
 
 import userRouter from "./routes/userRoute.js";
 import movieRouter from "./routes/movieRoute.js";
@@ -28,6 +33,7 @@ const allowedOrigins = [
   // "http://localhost:5173",
   // "http://localhost:5174",
   // "http://localhost:3000",
+  // "http://localhost:5000",
   "https://movie-admin-panel.netlify.app",
   "https://cine-ticket-hub.netlify.app",
   "https://movie-booking-0z6f.onrender.com",
