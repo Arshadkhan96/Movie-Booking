@@ -35,6 +35,7 @@ export const initCloudinary = () => {
 
 /* ================= MULTER-CLOUDINARY STORAGE ================= */
 
+// Single Cloudinary-backed multer storage (no local disk fallback)
 const storage = new CloudinaryStorage({
   cloudinary,
   params: async (req, file) => {
@@ -72,6 +73,7 @@ const allowedMimeTypes = new Set([
   "video/mkv",
 ]);
 
+// The one and only multer instance used across the app
 export const upload = multer({
   storage,
   limits: { fileSize: 50 * 1024 * 1024 }, // 50MB max file size
@@ -93,7 +95,7 @@ export const normalizeUpload = (file) => {
   if (!file) return null;
   const url = file.path || file.secure_url || file.url || null;
   const public_id = file.filename || file.public_id || null;
-  if (!url) return null;
+  if (!url || !url.includes("cloudinary.com")) return null;
 
   return { url, public_id };
 };

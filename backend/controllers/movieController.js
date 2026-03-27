@@ -69,6 +69,10 @@ const uploadPersonFiles = async (peopleArray, fieldName, req) => {
     if (person?.file && person.file.startsWith("data:image")) {
       const result = await uploadBase64ToCloudinary(person.file);
       if (result?.url) updated[i].file = result.url;
+    } else if (person?.file) {
+      // Strip any leftover local paths (e.g., "uploads/filename.png") to avoid persisting non-Cloudinary URLs
+      const normalized = toCloudinaryUrl(person.file);
+      updated[i].file = normalized || null;
     }
   }
 

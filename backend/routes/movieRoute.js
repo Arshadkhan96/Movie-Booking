@@ -56,8 +56,7 @@
 
 import express from 'express';
 import { createMovie, getMovies, getMovieById, deleteMovie } from '../controllers/movieController.js';
-import { upload } from '../config/cloudinary.js';
-import { cloudinary } from '../config/cloudinary.js';
+import { upload, cloudinary } from '../config/cloudinary.js';
 
 const movieRouter = express.Router();
 
@@ -74,6 +73,7 @@ const fileFields = [
   { name: "ltProducerFiles", maxCount: 20 },
   { name: "ltSingerFiles", maxCount: 20 },
 ];
+const cloudinaryUpload = upload.fields(fileFields);
 
 // Apply the Cloudinary upload middleware with the file fields configuration
 const uploadMiddleware = (req, res, next) => {
@@ -95,12 +95,13 @@ const uploadMiddleware = (req, res, next) => {
   if (!contentType.includes('multipart/form-data')) {
     console.log('📝 Non-multipart request (likely Base64), skipping multer');
     console.log('Body contains:', Object.keys(req.body || {}));
+    req.file = null;
     return next();
   }
   
   console.log('🔄 Processing multipart request with multer...');
   
-  upload.fields(fileFields)(req, res, (err) => {
+  cloudinaryUpload(req, res, (err) => {
     if (err) {
       console.error('❌ UPLOAD ERROR:', err.message);
       return res.status(400).json({ 
@@ -131,6 +132,18 @@ const uploadMiddleware = (req, res, next) => {
           (req.body.poster.length > 50 ? '...' : ''));
       }
     }
+
+    // Log first file as req.file for quick Cloudinary verification
+    const firstFile = Object.values(req.files || {})[0]?.[0] || null;
+    req.file = firstFile || null;
+    console.log('🔍 req.file snapshot:', req.file ? {
+      field: req.file.fieldname,
+      path: req.file.path,
+      filename: req.file.filename,
+      mimetype: req.file.mimetype,
+      size: req.file.size,
+      isCloudinary: req.file.path?.includes('cloudinary.com')
+    } : null);
     
     console.log('=============================================\n');
     next();
