@@ -113,40 +113,49 @@ const normalizeItemForOutput = (it = {}) => {
 export async function createMovie(req, res) {
   try {
     const body = req.body || {};
-    console.log("FILES RECEIVED (multer -> Cloudinary):", Object.fromEntries(
-      Object.entries(req.files || {}).map(([field, files]) => [
-        field,
-        files.map(f => ({
-          originalname: f.originalname,
-          path: f.path,
-          isCloudinary: f.path?.includes("cloudinary.com")
-        }))
-      ])
-    ));
+    
+    // Log req.file for Cloudinary verification
+    console.log('\n🔍 req.file verification:');
+    console.log('req.file:', req.file);
+    if (req.file) {
+      console.log('✅ File uploaded to Cloudinary:', {
+        originalname: req.file.originalname,
+        path: req.file.path,
+        filename: req.file.filename,
+        isCloudinary: req.file.path?.includes('cloudinary.com')
+      });
+    } else {
+      console.log('❌ No file uploaded via multer');
+    }
 
     if (!isCloudinaryConfigured()) {
       return res.status(500).json({
         success: false,
         message:
-          "Image upload service (Cloudinary) is not configured. Set CLOUDINARY_CLOUD_NAME / CLOUDINARY_API_KEY / CLOUDINARY_API_SECRET.",
+          "Image upload service (Cloudinary) is not configured. Set CLOUD_NAME / CLOUD_API_KEY / CLOUD_API_SECRET.",
       });
     }
 
     console.log("\nCREATE MOVIE REQUEST");
     console.log("Body keys:", Object.keys(body));
-    console.log("Files received:", Object.keys(req.files || {}));
-
-    const fileUrl = (field) => toCloudinaryUrl(req.files?.[field]?.[0]);
 
     // ===== HANDLE POSTER =====
-    let poster = fileUrl("poster"); // prefer multer/Cloudinary
-    if (!poster && body.poster) {
+    let poster = null;
+    
+    // First, try to get from req.file (multer upload)
+    if (req.file && req.file.path) {
+      poster = req.file.path;
+      console.log('📸 Using poster from req.file:', poster);
+    }
+    // Fallback to body.poster if no file uploaded
+    else if (body.poster) {
       if (body.poster.startsWith("data:image") || body.poster.startsWith("http")) {
         const result = await uploadBase64ToCloudinary(body.poster);
         if (result?.url) poster = result.url;
       } else {
         poster = toCloudinaryUrl(body.poster);
       }
+      console.log('📸 Using poster from body:', poster);
     }
 
     const looksCloudinary = (u) => typeof u === "string" && u.includes("cloudinary.com");
@@ -158,10 +167,6 @@ export async function createMovie(req, res) {
         receivedPoster: poster,
       });
     }
-
-    // ===== HANDLE OTHER MEDIA FILES =====
-    const trailerUrl = fileUrl("trailerUrl") || toCloudinaryUrl(body.trailerUrl) || null;
-    const videoUrl = fileUrl("videoUrl") || toCloudinaryUrl(body.videoUrl) || null;
 
     // ===== PARSE ARRAYS =====
     const categories =
@@ -175,27 +180,13 @@ export async function createMovie(req, res) {
       recliner: Number(body.recliner || 0),
     };
 
-    // ===== PEOPLE =====
+    // ===== PEOPLE (simplified for now) =====
     let cast = safeParseJSON(body.cast) || [];
     let directors = safeParseJSON(body.directors) || [];
     let producers = safeParseJSON(body.producers) || [];
 
-    cast = await uploadPersonFiles(cast, "castFiles", req);
-    directors = await uploadPersonFiles(directors, "directorFiles", req);
-    producers = await uploadPersonFiles(producers, "producerFiles", req);
-
     // ===== LATEST TRAILER =====
     const latestTrailer = safeParseJSON(body.latestTrailer) || {};
-
-    const ltThumb = fileUrl("ltThumbnail");
-    if (ltThumb) {
-      latestTrailer.thumbnail = ltThumb;
-    } else if (body.ltThumbnail && (body.ltThumbnail.startsWith("data:image") || body.ltThumbnail.startsWith("http"))) {
-      const result = await uploadBase64ToCloudinary(body.ltThumbnail);
-      if (result?.url) latestTrailer.thumbnail = result.url;
-    } else if (body.ltThumbnail) {
-      latestTrailer.thumbnail = toCloudinaryUrl(body.ltThumbnail);
-    }
 
     // ===== CREATE DOCUMENT =====
     const movieData = {
@@ -206,8 +197,6 @@ export async function createMovie(req, res) {
       categories,
       poster,
       thumbnail: poster,
-      trailerUrl,
-      videoUrl,
       rating: Number(body.rating) || 0,
       duration: Number(body.duration) || 120,
       slots,

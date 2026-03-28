@@ -60,22 +60,7 @@ import { upload, cloudinary } from '../config/cloudinary.js';
 
 const movieRouter = express.Router();
 
-// Define the file fields configuration
-const fileFields = [
-  { name: "poster", maxCount: 1 },
-  { name: "trailerUrl", maxCount: 1 },
-  { name: "videoUrl", maxCount: 1 },
-  { name: "ltThumbnail", maxCount: 1 },
-  { name: "castFiles", maxCount: 20 },
-  { name: "directorFiles", maxCount: 20 },
-  { name: "producerFiles", maxCount: 20 },
-  { name: "ltDirectorFiles", maxCount: 20 },
-  { name: "ltProducerFiles", maxCount: 20 },
-  { name: "ltSingerFiles", maxCount: 20 },
-];
-const cloudinaryUpload = upload.fields(fileFields);
-
-// Apply the Cloudinary upload middleware with the file fields configuration
+// Apply the Cloudinary upload middleware for single poster file
 const uploadMiddleware = (req, res, next) => {
   console.log('\n📤 FILE UPLOAD MIDDLEWARE ======================');
   console.log('Content-Type:', req.headers['content-type']);
@@ -83,16 +68,16 @@ const uploadMiddleware = (req, res, next) => {
   console.log('URL:', req.url);
 
   // Fail fast if Cloudinary isn't configured
-  if (!process.env.CLOUDINARY_CLOUD_NAME || !process.env.CLOUDINARY_API_KEY || !process.env.CLOUDINARY_API_SECRET) {
+  if (!process.env.CLOUD_NAME || !process.env.CLOUD_API_KEY || !process.env.CLOUD_API_SECRET) {
     return res.status(500).json({
       success: false,
-      message: "Cloudinary credentials are missing. Set CLOUDINARY_CLOUD_NAME / CLOUDINARY_API_KEY / CLOUDINARY_API_SECRET.",
+      message: "Cloudinary credentials are missing. Set CLOUD_NAME / CLOUD_API_KEY / CLOUD_API_SECRET.",
     });
   }
   
   console.log('🔄 Processing request with multer (CloudinaryStorage)...');
   
-  cloudinaryUpload(req, res, (err) => {
+  upload.single('poster')(req, res, (err) => {
     if (err) {
       console.error('❌ UPLOAD ERROR:', err.message);
       return res.status(400).json({ 
@@ -105,18 +90,13 @@ const uploadMiddleware = (req, res, next) => {
     // Log successful upload
     console.log('✅ Upload middleware completed');
     
-    if (req.files && Object.keys(req.files).length > 0) {
-      console.log('📁 Files uploaded:');
-      for (const [field, files] of Object.entries(req.files)) {
-        console.log(`   ${field}: ${files.length} file(s)`);
-        if (files[0]?.path) {
-          const url = files[0].path;
-          console.log(`   URL: ${url.substring(0, 80)}...`);
-          console.log(`   ✅ Cloudinary: ${url.includes('cloudinary.com') ? 'YES' : 'NO'}`);
-        }
-      }
+    if (req.file) {
+      console.log('📁 Poster file uploaded:');
+      console.log(`   Original name: ${req.file.originalname}`);
+      console.log(`   URL: ${req.file.path.substring(0, 80)}...`);
+      console.log(`   ✅ Cloudinary: ${req.file.path.includes('cloudinary.com') ? 'YES' : 'NO'}`);
     } else {
-      console.log('📭 No files uploaded via multer');
+      console.log('📭 No poster file uploaded via multer');
       if (req.body.poster) {
         console.log('📝 Poster in body:', 
           req.body.poster.substring(0, 50) + 
@@ -124,10 +104,8 @@ const uploadMiddleware = (req, res, next) => {
       }
     }
 
-    // Log first file as req.file for quick Cloudinary verification
-    const firstFile = Object.values(req.files || {})[0]?.[0] || null;
-    req.file = firstFile || null;
-    console.log('🔍 req.file snapshot:', req.file ? {
+    // Log req.file for Cloudinary verification
+    console.log('🔍 req.file:', req.file ? {
       field: req.file.fieldname,
       path: req.file.path,
       filename: req.file.filename,
@@ -193,7 +171,7 @@ movieRouter.get('/test/cloudinary', async (req, res) => {
 });
 
 // Test file upload
-movieRouter.post('/test/upload', uploadMiddleware, (req, res) => {
+movieRouter.post('/test/upload', upload.single('poster'), (req, res) => {
   console.log('\n🧪 TEST UPLOAD ENDPOINT ======================');
   
   const response = {
@@ -204,20 +182,17 @@ movieRouter.post('/test/upload', uploadMiddleware, (req, res) => {
       url: req.url,
       contentType: req.headers['content-type']
     },
-    files: {},
+    file: null,
     body_fields: Object.keys(req.body || {})
   };
   
-  if (req.files) {
-    response.files = {};
-    for (const [field, files] of Object.entries(req.files)) {
-      response.files[field] = files.map(file => ({
-        originalname: file.originalname,
-        cloudinary_url: file.path,
-        size: file.size,
-        mimetype: file.mimetype
-      }));
-    }
+  if (req.file) {
+    response.file = {
+      originalname: req.file.originalname,
+      cloudinary_url: req.file.path,
+      size: req.file.size,
+      mimetype: req.file.mimetype
+    };
   }
   
   console.log('Test response:', JSON.stringify(response, null, 2));

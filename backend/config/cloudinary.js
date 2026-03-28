@@ -6,15 +6,15 @@ import multer from "multer";
 
 export const isCloudinaryConfigured = () =>
   Boolean(
-    process.env.CLOUDINARY_CLOUD_NAME &&
-    process.env.CLOUDINARY_API_KEY &&
-    process.env.CLOUDINARY_API_SECRET
+    process.env.CLOUD_NAME &&
+    process.env.CLOUD_API_KEY &&
+    process.env.CLOUD_API_SECRET
   );
 
 const assertCloudinary = () => {
   if (!isCloudinaryConfigured()) {
     throw new Error(
-      "Cloudinary credentials are missing. Set CLOUDINARY_CLOUD_NAME / CLOUDINARY_API_KEY / CLOUDINARY_API_SECRET."
+      "Cloudinary credentials are missing. Set CLOUD_NAME / CLOUD_API_KEY / CLOUD_API_SECRET."
     );
   }
 };
@@ -23,13 +23,13 @@ export const initCloudinary = () => {
   assertCloudinary();
 
   cloudinary.config({
-    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-    api_key: process.env.CLOUDINARY_API_KEY,
-    api_secret: process.env.CLOUDINARY_API_SECRET,
+    cloud_name: process.env.CLOUD_NAME,
+    api_key: process.env.CLOUD_API_KEY,
+    api_secret: process.env.CLOUD_API_SECRET,
     secure: true,
   });
 
-  console.log("✅ Cloudinary initialized with cloud:", process.env.CLOUDINARY_CLOUD_NAME);
+  console.log("✅ Cloudinary initialized with cloud:", process.env.CLOUD_NAME);
   return cloudinary;
 };
 
@@ -46,7 +46,7 @@ const storage = new CloudinaryStorage({
       : `upload-${Date.now()}`;
 
     return {
-      folder: "movie-booking",
+      folder: "movies",
       resource_type: "auto",
       public_id: `${Date.now()}-${safeName}`,
       transformation: file.mimetype.startsWith("image/")
@@ -66,11 +66,6 @@ const allowedMimeTypes = new Set([
   "image/jpg",
   "image/png",
   "image/webp",
-  "image/gif",
-  "video/mp4",
-  "video/mov",
-  "video/avi",
-  "video/mkv",
 ]);
 
 // The one and only multer instance used across the app
@@ -85,7 +80,7 @@ export const upload = multer({
     }
 
     if (allowedMimeTypes.has(file.mimetype)) return cb(null, true);
-    cb(new Error(`Invalid file type: ${file.mimetype}. Only images and videos are allowed.`));
+    cb(new Error(`Invalid file type: ${file.mimetype}. Only images (jpg, png, jpeg, webp) are allowed.`));
   },
 });
 
@@ -100,7 +95,7 @@ export const normalizeUpload = (file) => {
   return { url, public_id };
 };
 
-export const uploadBase64ToCloudinary = async (base64String, folder = "movie-booking") => {
+export const uploadBase64ToCloudinary = async (base64String, folder = "movies") => {
   try {
     if (!base64String) return null;
     assertCloudinary();
