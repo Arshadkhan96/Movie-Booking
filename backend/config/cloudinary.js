@@ -20,6 +20,12 @@ const assertCloudinary = () => {
 };
 
 export const initCloudinary = () => {
+  console.log('\n🌤️ CLOUDINARY CONFIGURATION CHECK =================');
+  console.log('Cloud Name Loaded:', process.env.CLOUD_NAME ? '✅ YES' : '❌ NO');
+  console.log('API Key Loaded:', process.env.CLOUD_API_KEY ? '✅ YES' : '❌ NO');
+  console.log('API Secret Loaded:', process.env.CLOUD_API_SECRET ? '✅ YES' : '❌ NO');
+  console.log('===================================================\n');
+  
   assertCloudinary();
 
   cloudinary.config({
@@ -114,6 +120,12 @@ export const uploadBase64ToCloudinary = async (base64String, folder = "movies") 
       cleanBase64 = base64String.split(",")[1];
     }
 
+    console.log('📤 Uploading to Cloudinary:', {
+      folder,
+      base64Length: cleanBase64.length,
+      preview: cleanBase64.substring(0, 50) + '...'
+    });
+
     const result = await cloudinary.uploader.upload(
       `data:image/png;base64,${cleanBase64}`,
       {
@@ -122,12 +134,23 @@ export const uploadBase64ToCloudinary = async (base64String, folder = "movies") 
       }
     );
 
+    console.log('✅ Cloudinary upload successful:', {
+      public_id: result.public_id,
+      url: result.secure_url.substring(0, 80) + '...'
+    });
+
     return {
       url: result.secure_url,
       public_id: result.public_id,
     };
   } catch (error) {
-    console.error("❌ Cloudinary upload error:", error.message);
+    console.error('❌ Cloudinary upload error:', {
+      message: error.message,
+      code: error.code,
+      http_code: error.http_code,
+      folder: folder,
+      timestamp: new Date().toISOString()
+    });
     return null;
   }
 };

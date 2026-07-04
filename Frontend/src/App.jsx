@@ -11,7 +11,7 @@ import MovieDetailsHome from "./pages/MovieDetailsHome"
 import SeatSelector from "./pages/SeatSelector"
 import SeatSelectorPageHome from "./components/SeatSelectorPageHome"
 import { useEffect } from "react"
-import VerifyPaymentPage from "../VerifyPaymentPage"
+import VerifyPaymentPage from "./pages/VerifyPaymentPage"
 
 /**
  * ScrollToTop component:
@@ -98,8 +98,8 @@ function ScrollToTop() {
       <Route path="/movie/:id/seat/:slot" element={<SeatSelectorPageHome/>}/>
       <Route path="/movie/:id/seat-selector/:slot" element={<SeatSelectorPageHome/>}/>
     
-      <Route path="/success" element={<VerifyPaymentPage/>}/>
-      <Route path="/cancel" element={<VerifyPaymentPage/>}/>
+      <Route path="/success/*" element={<VerifyPaymentPage/>}/>
+      <Route path="/cancel/*" element={<VerifyPaymentPage/>}/>
      </Routes>
 
      </div>

@@ -149,9 +149,9 @@ movieRouter.get('/test/cloudinary', async (req, res) => {
       message: 'Cloudinary is connected',
       ping: result,
       config: {
-        cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-        api_key_set: !!process.env.CLOUDINARY_API_KEY,
-        api_secret_set: !!process.env.CLOUDINARY_API_SECRET
+        cloud_name: process.env.CLOUD_NAME,
+        api_key_set: !!process.env.CLOUD_API_KEY,
+        api_secret_set: !!process.env.CLOUD_API_SECRET
       },
       resources_count: resources.length,
       sample_resources: resources.map(r => ({

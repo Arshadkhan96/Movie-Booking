@@ -38,13 +38,14 @@ const LoginPage = () => {
         email:formData.email.trim(),
         password: formData.password,
       };
-      const res = await axios.post(`${API_BASE}/login`, payload, {
+     const res = await axios.post(`${API_BASE}/api/auth/login`, payload, {
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json'
         },
 
-        withCredentials: true
+        withCredentials: true,
+         timeout: 30000
 
       });
       console.log(res,'reslogin')

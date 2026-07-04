@@ -393,11 +393,7 @@ const Addpage = () => {
       appendFilesToForm(form, "producerFiles", producerImages);
     }
     try {
-      const res = await axios.post(`${API_BASE_URL}/api/movies`, form, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
-      });
+      const res = await axios.post(`${API_BASE_URL}/api/movies`, form);
       
       if(res?.data?.success) {
         toast.success("Movie added successfully!");

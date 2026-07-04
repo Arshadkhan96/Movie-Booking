@@ -24,16 +24,13 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
+app.use(cors());
 const port = process.env.PORT || 5000;
 
 /* =======================
    CORS CONFIG
 ======================= */
 const allowedOrigins = [
-  // "http://localhost:5173",
-  // "http://localhost:5174",
-  // "http://localhost:3000",
-  // "http://localhost:5000",
   "https://movie-admin-panel.netlify.app",
   "https://cine-ticket-hub.netlify.app",
   "https://movie-booking-0z6f.onrender.com",
@@ -130,7 +127,7 @@ app.get("/", (req, res) => {
       }
     },
     environment: process.env.NODE_ENV || 'development',
-    cloudinary: process.env.CLOUDINARY_CLOUD_NAME ? "Configured" : "Not Configured"
+    cloudinary: process.env.CLOUD_NAME ? "Configured" : "Not Configured"
   });
 });
 
@@ -194,7 +191,7 @@ const startServer = async () => {
     console.log('Environment:', process.env.NODE_ENV || 'development');
     console.log('Port:', port);
     console.log('Database:', process.env.MONGODB_URI ? 'Configured' : 'Not configured');
-    console.log('Cloudinary:', process.env.CLOUDINARY_CLOUD_NAME ? 'Configured' : 'Not configured');
+    console.log('Cloudinary:', process.env.CLOUD_NAME ? 'Configured' : 'Not configured');
     
     await connectDB();
     console.log("✅ MongoDB Connected");
@@ -212,7 +209,7 @@ const startServer = async () => {
     app.listen(port, () => {
       console.log(`✅ Server running on port ${port}`);
       console.log(`✅ API Base URL: http://localhost:${port}`);
-      console.log(`✅ Cloudinary: ${process.env.CLOUDINARY_CLOUD_NAME || 'Not configured'}`);
+      console.log(`✅ Cloudinary: ${process.env.CLOUD_NAME || 'Not configured'}`);
       console.log('=============================================\n');
     });
   } catch (error) {

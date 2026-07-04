@@ -114,8 +114,14 @@ export async function createMovie(req, res) {
   try {
     const body = req.body || {};
     
+    console.log('\n🎬 CREATE MOVIE DEBUG ======================');
+    console.log('req.body:', body);
+    console.log('req.file:', req.file);
+    console.log('body.poster:', body.poster);
+    console.log('body.poster type:', typeof body.poster);
+    
     // Log req.file for Cloudinary verification
-    console.log('\n🔍 req.file verification:');
+    console.log('🔍 req.file verification:');
     console.log('req.file:', req.file);
     if (req.file) {
       console.log('✅ File uploaded to Cloudinary:', {
@@ -153,18 +159,31 @@ export async function createMovie(req, res) {
         const result = await uploadBase64ToCloudinary(body.poster);
         if (result?.url) poster = result.url;
       } else {
+        // Reject any local paths like "uploads/filename.jpg"
+        if (body.poster.startsWith("uploads/")) {
+          console.log('❌ REJECTED: Local upload path detected:', body.poster);
+          return res.status(400).json({
+            success: false,
+            message: "Local file paths are not allowed. Please upload files through the proper Cloudinary upload endpoint.",
+            receivedPoster: body.poster,
+          });
+        }
         poster = toCloudinaryUrl(body.poster);
       }
       console.log('📸 Using poster from body:', poster);
     }
 
     const looksCloudinary = (u) => typeof u === "string" && u.includes("cloudinary.com");
-    if (!poster || !looksCloudinary(poster)) {
+    const isLocalPath = (u) => typeof u === "string" && u.startsWith("uploads/");
+    
+    if (!poster || !looksCloudinary(poster) || isLocalPath(poster)) {
       return res.status(400).json({
         success: false,
         message:
           "Poster must be uploaded to Cloudinary. Send multipart/form-data with field name 'poster' or provide a Cloudinary URL.",
         receivedPoster: poster,
+        isLocalPath: isLocalPath(poster),
+        isCloudinary: looksCloudinary(poster),
       });
     }
 
