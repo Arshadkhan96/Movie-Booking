@@ -5,7 +5,7 @@ import { ToastContainer, toast } from 'react-toastify';
 import { Film , Image as ImageIcon, Play, Star, Clock, Plus, X, Users,Upload} from 'lucide-react';
  
 // API configuration
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://movie-booking-0z6f.onrender.com';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 
 const Addpage = () => {
@@ -78,6 +78,12 @@ const Addpage = () => {
   const handlePosterChange = (e) => {
     const file = e.target.files && e.target.files[0];
     if (!file) return;
+    console.log('📸 File selected:', {
+      name: file.name,
+      size: file.size,
+      type: file.type,
+      lastModified: file.lastModified
+    });
     setPoster(file);
     const reader = new FileReader();
     reader.onload = (ev) => setPosterPreview(ev.target.result);
@@ -297,6 +303,9 @@ const Addpage = () => {
     setIsUploading(true);
     const form = new FormData();
 
+    console.log('🚀 Starting movie creation with type:', movieType);
+    console.log('📝 API URL:', `${API_BASE_URL}/api/movies`);
+
     form.append("type", movieType);
 
     if (movieType === "latestTrailers") {
@@ -338,7 +347,14 @@ const Addpage = () => {
       // normal / featured / releaseSoon
       form.append("movieName", movieName);
       form.append("categories", JSON.stringify(categories));
-      if (poster) form.append("poster", poster);
+      if (poster) {
+        console.log('📤 Appending poster to FormData:', {
+          name: poster.name,
+          size: poster.size,
+          type: poster.type
+        });
+        form.append("poster", poster);
+      }
       form.append("trailerUrl", trailerUrl || "");
       form.append("videoUrl", videoUrl || "");
       form.append("rating", String(rating));
@@ -392,7 +408,12 @@ const Addpage = () => {
       appendFilesToForm(form, "directorFiles", directorImages);
       appendFilesToForm(form, "producerFiles", producerImages);
     }
+
+    console.log('📋 FormData entries count:', Array.from(form.entries()).length);
+    console.log('📋 FormData keys:', Array.from(form.keys()));
+
     try {
+      console.log('🌐 Sending POST request to:', `${API_BASE_URL}/api/movies`);
       const res = await axios.post(`${API_BASE_URL}/api/movies`, form);
       
       if(res?.data?.success) {

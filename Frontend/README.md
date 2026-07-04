@@ -1,16 +1,53 @@
-# React + Vite
+# CineVerse 🎬
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+CineVerse is a modern movie booking platform that allows users to discover movies, explore showtimes, select seats, and book tickets online with a seamless experience.
 
-Currently, two official plugins are available:
+## Live Website
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+https://cine-ticket-hub.netlify.app
 
-## React Compiler
+## Features
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- Browse Latest Movies
+- Movie Details & Ratings
+- Showtimes & Seat Selection
+- Secure Online Booking
+- User Authentication
+- Responsive Design
+- Fast and Modern UI
+- Cloud-Based Media Management
 
-## Expanding the ESLint configuration
+## Tech Stack
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+### Frontend
+- React.js
+- Vite
+- Tailwind CSS
+- Axios
+
+### Backend
+- Node.js
+- Express.js
+- MongoDB Atlas
+- Cloudinary
+- JWT Authentication
+
+### Deployment
+- Netlify
+- Render
+
+## Project Highlights
+
+- Full Stack MERN Application
+- Cloudinary Image Upload Integration
+- Secure Authentication System
+- Modern Responsive UI
+- Real-Time Booking Experience
+
+## Admin Panel
+
+https://movie-admin-panel.netlify.app/
+
+## Status
+
+🚀 Live and actively maintained.

@@ -12,7 +12,7 @@ import {
 import { toast } from "react-toastify";
 import { seatSelectorHStyles } from "../assets/dummyStyles";
 
-const API_BASE = import.meta.env.VITE_API_URL || 'https://movie-booking-0z6f.onrender.com'
+const API_BASE = import.meta.env.VITE_API_URL || 'https://movie-booking-n2fg.onrender.com'
 
 /* layout */
 const ROWS = [

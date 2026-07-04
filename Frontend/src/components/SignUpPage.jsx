@@ -16,7 +16,7 @@ import {
 import { signUpStyles } from "../assets/dummyStyles";
 import axios from 'axios'
 
-const API_BASE = import.meta.env.VITE_API_URL || 'https://movie-booking-0z6f.onrender.com';
+const API_BASE = import.meta.env.VITE_API_URL || 'https://movie-booking-n2fg.onrender.com';
 
 const SignUpPage = () => {
   const [formData, setFormData] = useState({

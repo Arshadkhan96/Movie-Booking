@@ -6,7 +6,7 @@ import { useNavigate } from 'react-router-dom'
 import { useEffect } from 'react'
 import { Clock ,  Film, MapPin, QrCode,ChevronDown,  X  } from "lucide-react"
 
-const API_BASE = import.meta.env.VITE_API_URL || 'https://movie-booking-0z6f.onrender.com'
+const API_BASE = import.meta.env.VITE_API_URL || 'https://movie-booking-n2fg.onrender.com/'
 
 
 function getStoreToken() {

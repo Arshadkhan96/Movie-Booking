@@ -4,7 +4,7 @@ import axios from 'axios'
 import { Calendar, Clock, Film, Play, Play as PlayIcon, Star, Ticket, X, Search } from 'lucide-react';
 
 
-const API_BASE = import.meta.env.VITE_API_URL || 'https://movie-booking-0z6f.onrender.com';
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
   function getImageUrl(maybe) {
   // Convert filename, uploads/filename, or partial to a full uploads URL.

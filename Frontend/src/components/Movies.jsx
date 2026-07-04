@@ -3,7 +3,7 @@ import { moviesStyles } from "../assets/dummyStyles";
 import { Tickets } from "lucide-react";
 import { useEffect, useState } from "react";
 
-const API_BASE = "https://movie-booking-0z6f.onrender.com";
+const API_BASE = "https://movie-booking-n2fg.onrender.com";
 const PLACEHOLDER =
   "https://dummyimage.com/400x600/cccccc/000000&text=No+Poster";
 
@@ -21,16 +21,16 @@ const getUploadUrl = (maybe) => {
   
   // Handle absolute paths (starting with /uploads/)
   if (maybe.startsWith("/uploads/")) {
-    return `https://movie-booking-0z6f.onrender.com${maybe}`;
+    return `https://movie-booking-n2fg.onrender.com${maybe}`;
   }
   
   // Handle relative paths (uploads/filename.jpg)
   if (maybe.startsWith("uploads/")) {
-    return `https://movie-booking-0z6f.onrender.com/uploads/${maybe.replace(/^uploads\//, "")}`;
+    return `https://movie-booking-n2fg.onrender.com/uploads/${maybe.replace(/^uploads\//, "")}`;
   }
   
   // Default case - assume it's just a filename
-  return `https://movie-booking-0z6f.onrender.com/uploads/${maybe}`;
+  return `https://movie-booking-n2fg.onrender.com/uploads/${maybe}`;
 };
 
 const Movies = () => {

@@ -11,7 +11,7 @@ import { trailersStyles, trailersCSS } from "../assets/dummyStyles";
 import { useEffect, useRef, useState } from "react";
 import axios  from "axios"
 
-const API_BASE = import.meta.env.VITE_API_URL || "https://movie-booking-0z6f.onrender.com";
+const API_BASE = import.meta.env.VITE_API_URL || "https://movie-booking-n2fg.onrender.com";
 
 
 const PLACEHOLDER_THUMB =
@@ -39,16 +39,16 @@ const getUploadUrl = (input) => {
     
     // Absolute path (starting with /uploads/)
     if (input.startsWith("/uploads/")) {
-      return `https://movie-booking-0z6f.onrender.com${input}`;
+      return `https://movie-booking-n2fg.onrender.com${input}`;
     }
     
     // Relative path (uploads/filename.jpg)
     if (input.startsWith("uploads/")) {
-      return `https://movie-booking-0z6f.onrender.com/uploads/${input.replace(/^uploads\//, "")}`;
+      return `https://movie-booking-n2fg.onrender.com/uploads/${input.replace(/^uploads\//, "")}`;
     }
     
     // Just a filename
-    return `https://movie-booking-0z6f.onrender.com/uploads/${input}`;
+    return `https://movie-booking-n2fg.onrender.com/uploads/${input}`;
   }
 
   return PLACEHOLDER_THUMB;
