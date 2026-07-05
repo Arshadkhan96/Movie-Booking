@@ -210,6 +210,22 @@ export async function createMovie(req, res) {
     // ===== LATEST TRAILER =====
     const latestTrailer = safeParseJSON(body.latestTrailer) || {};
 
+    // Process latest trailer files
+    if (req.files?.ltThumbnail && req.files.ltThumbnail.length > 0) {
+      latestTrailer.thumbnail = req.files.ltThumbnail[0].path;
+      console.log('📸 Using ltThumbnail from req.files:', latestTrailer.thumbnail);
+    }
+
+    if (latestTrailer.directors && Array.isArray(latestTrailer.directors)) {
+      latestTrailer.directors = await uploadPersonFiles(latestTrailer.directors, 'ltDirectorFiles', req);
+    }
+    if (latestTrailer.producers && Array.isArray(latestTrailer.producers)) {
+      latestTrailer.producers = await uploadPersonFiles(latestTrailer.producers, 'ltProducerFiles', req);
+    }
+    if (latestTrailer.singers && Array.isArray(latestTrailer.singers)) {
+      latestTrailer.singers = await uploadPersonFiles(latestTrailer.singers, 'ltSingerFiles', req);
+    }
+
     // ===== CREATE DOCUMENT =====
     const movieData = {
       movieName: body.movieName || "",

@@ -411,6 +411,16 @@ const Addpage = () => {
 
     console.log('📋 FormData entries count:', Array.from(form.entries()).length);
     console.log('📋 FormData keys:', Array.from(form.keys()));
+    
+    // Log all FormData entries for debugging
+    console.log('📋 FormData entries:');
+    for (const [key, value] of form.entries()) {
+      if (value instanceof File) {
+        console.log(`  ${key}: File - ${value.name} (${value.size} bytes, ${value.type})`);
+      } else {
+        console.log(`  ${key}: ${value}`);
+      }
+    }
 
     try {
       console.log('🌐 Sending POST request to:', `${API_BASE_URL}/api/movies`);

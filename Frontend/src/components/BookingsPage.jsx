@@ -135,33 +135,37 @@ const BookingsPage = () => {
         }
         const data = res?.data || {};
 
-        console.log('Raw API response data:', data);
+        console.log('Full API response:', res);
+        console.log('response.data:', data);
+        console.log('response.data.items:', data.items);
+        console.log('response.data.success:', data.success);
+        console.log('response.data.total:', data.total);
 
         let items = [];
-        if (Array.isArray(data)) {
-          console.log('Data is an array, using directly');
+        
+        // Priority: Use items array from backend response
+        if (Array.isArray(data.items)) {
+          console.log('Using data.items array:', data.items.length, 'items');
+          items = data.items;
+        } else if (Array.isArray(data.bookings)) {
+          console.log('Using data.bookings array:', data.bookings.length, 'items');
+          items = data.bookings;
+        } else if (Array.isArray(data.data)) {
+          console.log('Using data.data array:', data.data.length, 'items');
+          items = data.data;
+        } else if (Array.isArray(data)) {
+          console.log('Data is an array, using directly:', data.length, 'items');
           items = data;
-        } else if (data && typeof data === 'object') {
-          // Check all possible array properties
-          const arrayProps = ['items', 'bookings', 'data', 'item'];
-          for (const prop of arrayProps) {
-            if (Array.isArray(data[prop])) {
-              console.log(`Found array in property '${prop}'`);
-              items = data[prop];
-              break;
-            }
-          }
-
-          // If no array found but has _id, use the object itself
-          if (items.length === 0 && data._id) {
-            console.log('No array found, but has _id, using as single item');
-            items = [data];
-          }
+        } else if (data && typeof data === 'object' && data._id) {
+          console.log('No array found, but has _id, using as single item');
+          items = [data];
         }
 
-        console.log('Processed items:', items);
+        console.log('Final processed items:', items);
+        console.log('Items length:', items.length);
         if (items.length === 0) {
           console.warn('No booking data found in response');
+          console.warn('Available keys in data:', Object.keys(data));
         }
 
         const normalized = items.map((b) => {

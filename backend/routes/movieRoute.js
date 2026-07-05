@@ -10,6 +10,10 @@ const fileFields = [
   { name: "castFiles", maxCount: 20 },
   { name: "directorFiles", maxCount: 20 },
   { name: "producerFiles", maxCount: 20 },
+  { name: "ltThumbnail", maxCount: 1 },
+  { name: "ltDirectorFiles", maxCount: 20 },
+  { name: "ltProducerFiles", maxCount: 20 },
+  { name: "ltSingerFiles", maxCount: 20 },
 ];
 
 // Apply the Cloudinary upload middleware for multiple file fields
