@@ -50,7 +50,7 @@ app.use(
     },
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "cache-control"],
+    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "cache-control", "pragma", "accept", "accept-language", "accept-encoding", "user-agent", "referer", "origin"],
   })
 );
 
