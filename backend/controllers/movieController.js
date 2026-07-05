@@ -115,23 +115,21 @@ export async function createMovie(req, res) {
     const body = req.body || {};
     
     console.log('\n🎬 CREATE MOVIE DEBUG ======================');
-    console.log('req.body:', body);
-    console.log('req.file:', req.file);
-    console.log('body.poster:', body.poster);
-    console.log('body.poster type:', typeof body.poster);
+    console.log('req.body keys:', Object.keys(body));
+    console.log('req.files:', req.files ? Object.keys(req.files) : 'No files');
     
-    // Log req.file for Cloudinary verification
-    console.log('🔍 req.file verification:');
-    console.log('req.file:', req.file);
-    if (req.file) {
-      console.log('✅ File uploaded to Cloudinary:', {
-        originalname: req.file.originalname,
-        path: req.file.path,
-        filename: req.file.filename,
-        isCloudinary: req.file.path?.includes('cloudinary.com')
+    // Log uploaded files for Cloudinary verification
+    if (req.files) {
+      Object.keys(req.files).forEach(fieldName => {
+        const files = req.files[fieldName];
+        console.log(`📁 ${fieldName}: ${files.length} file(s)`);
+        files.forEach((file, idx) => {
+          console.log(`   [${idx}] ${file.originalname} -> ${file.path.substring(0, 60)}...`);
+          console.log(`       Cloudinary: ${file.path?.includes('cloudinary.com') ? 'YES' : 'NO'}`);
+        });
       });
     } else {
-      console.log('❌ No file uploaded via multer');
+      console.log('📭 No files uploaded via multer');
     }
 
     if (!isCloudinaryConfigured()) {
@@ -148,10 +146,10 @@ export async function createMovie(req, res) {
     // ===== HANDLE POSTER =====
     let poster = null;
     
-    // First, try to get from req.file (multer upload)
-    if (req.file && req.file.path) {
-      poster = req.file.path;
-      console.log('📸 Using poster from req.file:', poster);
+    // First, try to get from req.files.poster (multer upload)
+    if (req.files?.poster && req.files.poster.length > 0) {
+      poster = req.files.poster[0].path;
+      console.log('📸 Using poster from req.files.poster:', poster);
     }
     // Fallback to body.poster if no file uploaded
     else if (body.poster) {
@@ -199,10 +197,15 @@ export async function createMovie(req, res) {
       recliner: Number(body.recliner || 0),
     };
 
-    // ===== PEOPLE (simplified for now) =====
+    // ===== PEOPLE =====
     let cast = safeParseJSON(body.cast) || [];
     let directors = safeParseJSON(body.directors) || [];
     let producers = safeParseJSON(body.producers) || [];
+
+    // Process uploaded files for cast, directors, producers
+    cast = await uploadPersonFiles(cast, 'castFiles', req);
+    directors = await uploadPersonFiles(directors, 'directorFiles', req);
+    producers = await uploadPersonFiles(producers, 'producerFiles', req);
 
     // ===== LATEST TRAILER =====
     const latestTrailer = safeParseJSON(body.latestTrailer) || {};
