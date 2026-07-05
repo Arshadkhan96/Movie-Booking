@@ -421,6 +421,22 @@ const Addpage = () => {
         console.log(`  ${key}: ${value}`);
       }
     }
+    
+    // Log movie type specific data
+    console.log('🎬 Movie type:', movieType);
+    if (movieType === 'latestTrailers') {
+      console.log('📺 Latest trailer data:', {
+        movieName,
+        categories,
+        ltThumbnail: ltThumbnail ? ltThumbnail.name : 'No thumbnail',
+        ltVideoUrl,
+        ltDescription,
+        ltYear,
+        ltDirectorImages: ltDirectorImages.length,
+        ltProducerImages: ltProducerImages.length,
+        ltSingerImages: ltSingerImages.length
+      });
+    }
 
     try {
       console.log('🌐 Sending POST request to:', `${API_BASE_URL}/api/movies`);
@@ -439,7 +455,7 @@ const Addpage = () => {
       
       // Log additional error details for debugging
       if (err.response) {
-        console.error("Response data:", err.response.data);
+        console.error("Response data:", JSON.stringify(err.response.data, null, 2));
         console.error("Response status:", err.response.status);
         console.error("Response headers:", err.response.headers);
       } else if (err.request) {
