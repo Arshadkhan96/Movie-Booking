@@ -24,6 +24,7 @@ const latestTrailerSchema = new mongoose.Schema({
       minutes: { type: Number, default: 0 },
     },
     year: { type: Number },
+    rating: { type: Number, default: 0 },
     description: { type: String, trim: true },
     thumbnail: { type: String, trim: true }, //file name or url
     videoId: { type: String, trim: true }, //storing the url

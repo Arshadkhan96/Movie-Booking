@@ -143,6 +143,10 @@ export async function createMovie(req, res) {
     console.log("\nCREATE MOVIE REQUEST");
     console.log("Body keys:", Object.keys(body));
 
+    const movieType = ["normal", "featured", "releaseSoon", "latestTrailers"].includes(body.type)
+      ? body.type
+      : "normal";
+
     // ===== HANDLE POSTER =====
     let poster = null;
     
@@ -174,7 +178,7 @@ export async function createMovie(req, res) {
     const looksCloudinary = (u) => typeof u === "string" && u.includes("cloudinary.com");
     const isLocalPath = (u) => typeof u === "string" && u.startsWith("uploads/");
     
-    if (!poster || !looksCloudinary(poster) || isLocalPath(poster)) {
+    if (movieType !== "latestTrailers" && movieType !== "releaseSoon" && (!poster || !looksCloudinary(poster) || isLocalPath(poster))) {
       return res.status(400).json({
         success: false,
         message:
@@ -216,6 +220,24 @@ export async function createMovie(req, res) {
       console.log('📸 Using ltThumbnail from req.files:', latestTrailer.thumbnail);
     }
 
+    if (movieType === "latestTrailers") {
+      const trailerThumbnail = toCloudinaryUrl(latestTrailer.thumbnail);
+
+      if (!trailerThumbnail || isLocalPath(trailerThumbnail)) {
+        return res.status(400).json({
+          success: false,
+          message:
+            "Latest trailer thumbnail must be uploaded to Cloudinary. Send multipart/form-data with field name 'ltThumbnail'.",
+          receivedThumbnail: latestTrailer.thumbnail || null,
+          isLocalPath: isLocalPath(latestTrailer.thumbnail),
+          isCloudinary: looksCloudinary(latestTrailer.thumbnail),
+        });
+      }
+
+      latestTrailer.thumbnail = trailerThumbnail;
+      poster = trailerThumbnail;
+    }
+
     if (latestTrailer.directors && Array.isArray(latestTrailer.directors)) {
       latestTrailer.directors = await uploadPersonFiles(latestTrailer.directors, 'ltDirectorFiles', req);
     }
@@ -229,14 +251,14 @@ export async function createMovie(req, res) {
     // ===== CREATE DOCUMENT =====
     const movieData = {
       movieName: body.movieName || "",
-      type: ["normal", "featured", "releaseSoon", "latestTrailers"].includes(body.type)
-        ? body.type
-        : "normal",
-      categories,
+      type: movieType,
+      categories: movieType === "latestTrailers" ? latestTrailer.genres || categories : categories,
       poster,
       thumbnail: poster,
       rating: Number(body.rating) || 0,
       duration: Number(body.duration) || 120,
+      trailerUrl: body.trailerUrl || "",
+      videoUrl: body.videoUrl || "",
       slots,
       seatPrices,
       cast,
@@ -273,7 +295,32 @@ export async function createMovie(req, res) {
 
 export async function getMovies(req, res) {
   try {
-    const items = await Movie.find().sort("-createdAt").lean();
+    const query = {};
+    const allowedTypes = ["normal", "featured", "releaseSoon", "latestTrailers"];
+
+    if (allowedTypes.includes(req.query?.type)) {
+      query.type = req.query.type;
+    } else if (req.query?.latestTrailers === "true") {
+      query.type = "latestTrailers";
+    }
+
+    if (req.query?.search) {
+      const search = String(req.query.search).trim();
+      if (search) {
+        query.$or = [
+          { movieName: { $regex: search, $options: "i" } },
+          { story: { $regex: search, $options: "i" } },
+          { "latestTrailer.title": { $regex: search, $options: "i" } },
+          { "latestTrailer.description": { $regex: search, $options: "i" } },
+        ];
+      }
+    }
+
+    const limit = Math.min(Math.max(Number(req.query?.limit) || 0, 0), 100);
+    const dbQuery = Movie.find(query).sort("-createdAt");
+    if (limit) dbQuery.limit(limit);
+
+    const items = await dbQuery.lean();
     const normalized = items.map(normalizeItemForOutput);
     res.json({ success: true, total: normalized.length, items: normalized });
   } catch (err) {
